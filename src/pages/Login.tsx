@@ -20,7 +20,6 @@ export default function Login() {
         }}
       >
         <h1>💰 Finny</h1>
-        <p className="muted">Финансы Маши и Димы</p>
         <input type="email" placeholder="Логин (email)" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <input type="password" placeholder="Пароль" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         {error && <div className="warn small">{error}</div>}
