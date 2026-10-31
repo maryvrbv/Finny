@@ -10,11 +10,11 @@ import Plan from './pages/Plan'
 import Admin from './pages/Admin'
 
 const tabs = [
-  { id: 'overview', label: 'Обзор' },
-  { id: 'transactions', label: 'Траты' },
-  { id: 'dubai', label: '🏙️ Квартира' },
-  { id: 'plan', label: 'План' },
-  { id: 'admin', label: '⚙️ Настройки' },
+  { id: 'overview', label: 'Обзор', icon: '📊' },
+  { id: 'transactions', label: 'Траты', icon: '🧾' },
+  { id: 'dubai', label: 'Квартира', icon: '🏙️' },
+  { id: 'plan', label: 'План', icon: '🎯' },
+  { id: 'admin', label: 'Настройки', icon: '⚙️' },
 ] as const
 type TabId = (typeof tabs)[number]['id']
 
@@ -45,17 +45,27 @@ function Main({ email }: { email: string }) {
   return (
     <div className="app">
       <header className="top">
-        <div className="brand">💰 Finny <span className="muted">· Маша и Дима</span></div>
-        <nav>
+        <div className="brand"><img className="brand-mark" src="/icons/icon-192.png" alt="" /> Finny</div>
+        <nav className="top-nav" aria-label="Разделы">
           {tabs.map((t) => (
             <a key={t.id} href={'#' + t.id} className={tab === t.id ? 'active' : ''}>{t.label}</a>
           ))}
         </nav>
-        <div className="small muted">
-          {store.saving && 'Сохраняю… · '}
-          {email} · <button className="ghost small" onClick={() => supabase.auth.signOut()}>Выйти</button>
+        <div className="account">
+          {store.saving && <span>Сохраняю…</span>}
+          <span className="email">{email}</span>
+          <button className="ghost small" onClick={() => supabase.auth.signOut()}>Выйти</button>
         </div>
       </header>
+
+      <nav className="tabbar" aria-label="Разделы">
+        {tabs.map((t) => (
+          <a key={t.id} href={'#' + t.id} className={tab === t.id ? 'active' : ''} aria-current={tab === t.id ? 'page' : undefined}>
+            <span className="ti" aria-hidden="true">{t.icon}</span>
+            {t.label}
+          </a>
+        ))}
+      </nav>
 
       {store.error && (
         <div className="banner">

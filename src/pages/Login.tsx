@@ -19,7 +19,7 @@ export default function Login() {
           if (error) setError(error.message === 'Invalid login credentials' ? 'Неверный логин или пароль' : error.message)
         }}
       >
-        <h1>💰 Finny</h1>
+        <h1 className="brand"><img className="brand-mark" src="/icons/icon-192.png" alt="" /> Finny</h1>
         <input type="email" placeholder="Логин (email)" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <input type="password" placeholder="Пароль" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         {error && <div className="warn small">{error}</div>}

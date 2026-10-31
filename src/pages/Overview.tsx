@@ -44,8 +44,7 @@ export default function Overview({ store }: { store: Store }) {
   return (
     <>
       <div className="toolbar">
-        <h1>{monthLabel(month)}</h1>
-        <select value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Месяц">
+        <select className="month-select" value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Месяц">
           {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
         </select>
       </div>
@@ -53,9 +52,10 @@ export default function Overview({ store }: { store: Store }) {
       <section className="stats">
         <Stat label="Потрачено" value={fmt(spent)} sub={`план ${fmt(planned)} без квартиры`} />
         <Stat label="Доходы" value={fmt(income)} sub={`${tx.length} операций`} />
-        <Stat label="Разница" value={fmt(income - spent)} />
+        <Stat label="Баланс месяца" value={fmt(income - spent)} sub="доходы − расходы" />
         {d?.next && (
           <Stat
+            className="wide accent"
             label="🏙️ Следующий платёж за квартиру"
             value={fmt(left, 'AED')}
             sub={`${new Date(d.next.due_date).toLocaleDateString('ru-RU')} · через ${daysBetween(today(), d.next.due_date)} дн. · ≈ ${fmt(left * d.rateRUB)}`}
@@ -65,7 +65,7 @@ export default function Overview({ store }: { store: Store }) {
 
       {data.transactions.some((t) => t.needs_review) && (
         <a className="banner review-banner" href="#transactions-review">
-          ❓ Нужно уточнить {data.transactions.filter((t) => t.needs_review).length} операций — открыть список
+          ❓ Нужно уточнить: {data.transactions.filter((t) => t.needs_review).length} — открыть →
         </a>
       )}
 

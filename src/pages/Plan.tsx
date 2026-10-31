@@ -26,7 +26,7 @@ export default function Plan({ store }: { store: Store }) {
     <>
       <div className="toolbar">
         <h1>План на месяц</h1>
-        <select value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Месяц для сравнения">
+        <select className="hide-sm-no" value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Месяц для сравнения">
           {months.map((m) => <option key={m} value={m}>факт: {monthLabel(m)}</option>)}
         </select>
       </div>
@@ -62,13 +62,13 @@ export default function Plan({ store }: { store: Store }) {
       <section className="card table-wrap">
         <h2>Статьи плана</h2>
         <table>
-          <thead><tr><th>Тип</th><th>Статья</th><th>Кто</th><th>Категория</th><th className="num">В месяц</th></tr></thead>
+          <thead><tr><th className="hide-sm">Тип</th><th>Статья</th><th>Кто</th><th className="hide-sm">Категория</th><th className="num">В месяц</th></tr></thead>
           <tbody>
             {data.budget.map((l) => (
               <tr key={l.id}>
-                <td className="muted small">{{ income: 'Доход', savings: 'Накопления', expense: 'Расход' }[l.kind]}</td>
+                <td className="muted small hide-sm">{{ income: 'Доход', savings: 'Накопления', expense: 'Расход' }[l.kind]}</td>
                 <td>{l.title}</td><td>{PEOPLE[l.who]}</td>
-                <td className="muted">{l.category_id && `${catById[l.category_id]?.emoji} ${catById[l.category_id]?.name}`}</td>
+                <td className="muted hide-sm">{l.category_id && `${catById[l.category_id]?.emoji} ${catById[l.category_id]?.name}`}</td>
                 <td className="num">{fmt(l.monthly_rub)}</td>
               </tr>
             ))}

@@ -30,11 +30,14 @@ export default function Transactions({ store }: { store: Store }) {
   return (
     <>
       <div className="toolbar">
-        <h1>Траты</h1>
-        <select value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Месяц">
+        <select className="month-select" value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Месяц">
           <option value="">Все месяцы</option>
           {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
         </select>
+        <span style={{ flex: 1 }} />
+        <button onClick={() => setAdding((v) => !v)}>{adding ? 'Отмена' : '+ Добавить'}</button>
+      </div>
+      <div className="filters">
         <select value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Категория">
           <option value="">Все категории</option>
           {catOptions}
@@ -43,17 +46,18 @@ export default function Transactions({ store }: { store: Store }) {
           <option value="">Все</option>
           {whoOptions}
         </select>
-        <input placeholder="Поиск…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <label className="check">
+        <input className="search" type="search" placeholder="Поиск…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <label className={'chip' + (review ? ' on' : '')}>
           <input type="checkbox" checked={review} onChange={(e) => setReview(e.target.checked)} />
-          ❓ К уточнению ({data.transactions.filter((t) => t.needs_review).length})
+          ❓ К уточнению · {data.transactions.filter((t) => t.needs_review).length}
         </label>
-        <button onClick={() => setAdding((v) => !v)}>{adding ? 'Отмена' : '+ Добавить'}</button>
       </div>
 
       {adding && <AddForm store={store} onDone={() => setAdding(false)} />}
 
-      <div className="card table-wrap">
+      <MobileList store={store} rows={rows} total={total} />
+
+      <div className="card table-wrap tx-table">
         <table>
           <thead>
             <tr>
@@ -140,5 +144,96 @@ function AddForm({ store, onDone }: { store: Store; onDone: () => void }) {
       <input placeholder="Заметка" value={f.note} onChange={(e) => set({ note: e.target.value })} />
       <button type="submit">Сохранить</button>
     </form>
+  )
+}
+
+type Tx = Store['data']['transactions'][number]
+
+/** Мобильный вид: список по дням, тап по строке раскрывает редактирование. */
+function MobileList({ store, rows, total }: { store: Store; rows: Tx[]; total: number }) {
+  const { data, toRub } = store
+  const [open, setOpen] = useState<string | null>(null)
+  const cat = Object.fromEntries(data.categories.map((c) => [c.id, c]))
+  const upd = (id: string, patch: object) => store.update('finny_transactions', 'id', id, patch)
+
+  const days: [string, Tx[]][] = []
+  for (const t of rows) {
+    const last = days[days.length - 1]
+    if (last && last[0] === t.date) last[1].push(t)
+    else days.push([t.date, [t]])
+  }
+  const dayLabel = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' })
+
+  if (!rows.length) return <div className="tx-list empty">Операций нет</div>
+  return (
+    <div className="tx-list">
+      {days.map(([d, list]) => (
+        <section key={d}>
+          <div className="tx-day">
+            <span>{dayLabel(d)}</span>
+            <span className="num">{fmt(list.reduce((s, t) => s + (cat[t.category_id]?.kind === 'expense' ? toRub(t.amount, t.currency) : 0), 0))}</span>
+          </div>
+          <div className="tx-group">
+            {list.map((t) => {
+              const c = cat[t.category_id]
+              const isOpen = open === t.id
+              return (
+                <div key={t.id} className={'tx' + (t.needs_review ? ' review' : '')}>
+                  <button className="tx-row" onClick={() => setOpen(isOpen ? null : t.id)} aria-expanded={isOpen}>
+                    <span className="tx-ico" aria-hidden="true">{t.needs_review ? '❓' : c?.emoji ?? '📦'}</span>
+                    <span className="tx-main">
+                      <span className="tx-title">{t.title}</span>
+                      <span className="tx-meta">{c?.name ?? t.category_id} · {PEOPLE[t.who]}</span>
+                    </span>
+                    <span className={'tx-amount' + (t.amount > 0 ? ' pos' : '')}>
+                      {t.amount > 0 ? '+' : ''}{fmt(t.amount, t.currency === 'RUB' ? '₽' : t.currency, 2)}
+                      {c?.kind === 'transfer' && <span className="cur">перевод</span>}
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <div className="tx-edit">
+                      <label>Название
+                        <input defaultValue={t.title} onBlur={(e) => e.target.value !== t.title && upd(t.id, { title: e.target.value })} />
+                      </label>
+                      <div className="row2">
+                        <label>Категория
+                          <select value={t.category_id} onChange={(e) => upd(t.id, { category_id: e.target.value })}>
+                            {data.categories.map((x) => <option key={x.id} value={x.id}>{x.emoji} {x.name}</option>)}
+                          </select>
+                        </label>
+                        <label>Кто
+                          <select value={t.who} onChange={(e) => upd(t.id, { who: e.target.value })}>
+                            {Object.entries(PEOPLE).map(([id, n]) => <option key={id} value={id}>{n}</option>)}
+                          </select>
+                        </label>
+                      </div>
+                      <div className="row2">
+                        <label>Сумма, {t.currency}
+                          <input type="number" inputMode="decimal" step="0.01" defaultValue={t.amount}
+                            onBlur={(e) => Number(e.target.value) !== t.amount && upd(t.id, { amount: Number(e.target.value) })} />
+                        </label>
+                        <label>Дата
+                          <input type="date" defaultValue={t.date} onBlur={(e) => e.target.value && e.target.value !== t.date && upd(t.id, { date: e.target.value })} />
+                        </label>
+                      </div>
+                      {(t.note || t.source) && <div className="tx-note">{[t.note, t.source].filter(Boolean).join(' · ')}</div>}
+                      <div className="actions">
+                        <button className={'ghost' + (t.needs_review ? ' on' : '')} onClick={() => upd(t.id, { needs_review: !t.needs_review })}>
+                          ❓ {t.needs_review ? 'Уточнено' : 'Уточнить'}
+                        </button>
+                        <button className="ghost" onClick={() => confirm(`Удалить «${t.title}»?`) && store.remove('finny_transactions', 'id', t.id)}>
+                          Удалить
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      ))}
+      <div className="tx-total"><span>Итого: {rows.length} операций</span><span className="num">{fmt(total)}</span></div>
+    </div>
   )
 }

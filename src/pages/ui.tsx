@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 
-export function Stat({ label, value, sub }: { label: string; value: ReactNode; sub?: ReactNode }) {
+export function Stat({ label, value, sub, className = '' }: { label: string; value: ReactNode; sub?: ReactNode; className?: string }) {
   return (
-    <div className="stat">
+    <div className={'stat ' + className}>
       <div className="stat-label">{label}</div>
       <div className="stat-value">{value}</div>
       {sub && <div className="stat-sub">{sub}</div>}

@@ -40,7 +40,7 @@ export default function Dubai({ store }: { store: Store }) {
       <section className="stats">
         <Stat label="Цена" value={aed(p.price_aed)} sub={`+ сборы ${aed(s.feesAED)}`} />
         <Stat label="Оплачено по графику" value={aed(s.paidToPlanAED)} sub={`${s.paidPercent.toFixed(0)}% цены`} />
-        <Stat label="Осталось" value={aed(s.remainingAED)} sub={`≈ ${rub(s.remainingAED * s.rateRUB)} по курсу ${s.rateRUB}`} />
+        <Stat className="wide accent" label="Осталось" value={aed(s.remainingAED)} sub={`≈ ${rub(s.remainingAED * s.rateRUB)} по курсу ${s.rateRUB}`} />
         <Stat
           label="Опережение графика"
           value={aed(Math.max(0, s.aheadOfScheduleAED))}
@@ -71,17 +71,17 @@ export default function Dubai({ store }: { store: Store }) {
           </p>
         </section>
 
-        <section className="card">
+        <section className="card table-wrap">
           <h2>Ближайшие 12 месяцев</h2>
           <p className="muted small">
             Нужно по плановому курсу {p.planning_rate_rub} ₽/AED vs накопится при {rub(p.monthly_savings_rub)}/мес с сегодняшнего дня (без учёта текущих остатков).
           </p>
           <table>
-            <thead><tr><th>Дата</th><th className="num">AED</th><th className="num">Нужно (нараст.)</th><th className="num">Накопится</th></tr></thead>
+            <thead><tr><th>Дата</th><th className="num">AED</th><th className="num">Нужно</th><th className="num">Накопится</th></tr></thead>
             <tbody>
               {forecast.map((r) => (
                 <tr key={r.n}>
-                  <td className="nowrap">{date(r.due_date)} <span className="muted small">{r.percent}%</span></td>
+                  <td className="nowrap">{date(r.due_date)} <span className="muted small hide-sm">{r.percent}%</span></td>
                   <td className="num">{aed(r.amount_aed - r.paidAED)}</td>
                   <td className="num">{rub(r.needCum)}</td>
                   <td className={'num ' + (r.savedCum < r.needCum ? 'warn' : 'ok')}>{r.savedCum < r.needCum ? '! ' : '✓ '}{rub(r.savedCum)}</td>
@@ -95,17 +95,17 @@ export default function Dubai({ store }: { store: Store }) {
       <section className="card table-wrap">
         <h2>Фактические платежи</h2>
         <table>
-          <thead><tr><th>Дата</th><th>Как</th><th>Комментарий</th><th className="num">AED</th><th className="num">Маша ₽</th><th className="num">Дима ₽</th></tr></thead>
+          <thead><tr><th>Дата</th><th className="hide-sm">Как</th><th className="hide-sm">Комментарий</th><th className="num">AED</th><th className="num">Маша ₽</th><th className="num">Дима ₽</th></tr></thead>
           <tbody>
             {payments.map((x) => (
               <tr key={x.id}>
-                <td className="nowrap">{date(x.date)}</td><td>{x.bank}</td><td className="small">{x.note}</td>
+                <td className="nowrap">{date(x.date)}</td><td className="hide-sm">{x.bank}</td><td className="small hide-sm">{x.note}</td>
                 <td className="num">{aed(x.aed)}</td><td className="num">{rub(x.rub_mary)}</td><td className="num">{rub(x.rub_dima)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr><td colSpan={3}>Итого</td><td className="num">{aed(s.paidAED)}</td><td className="num">{rub(s.contributionsRUB.mary)}</td><td className="num">{rub(s.contributionsRUB.dima)}</td></tr>
+            <tr><td>Итого</td><td className="hide-sm" /><td className="hide-sm" /><td className="num">{aed(s.paidAED)}</td><td className="num">{rub(s.contributionsRUB.mary)}</td><td className="num">{rub(s.contributionsRUB.dima)}</td></tr>
           </tfoot>
         </table>
       </section>
@@ -113,16 +113,16 @@ export default function Dubai({ store }: { store: Store }) {
       <section className="card table-wrap">
         <h2>График застройщика ({plan.length} платежей)</h2>
         <table>
-          <thead><tr><th>#</th><th>Дата</th><th>Этап</th><th className="num">%</th><th className="num">AED</th><th className="num">Нарастающим</th><th>Статус</th></tr></thead>
+          <thead><tr><th>#</th><th>Дата</th><th className="hide-sm">Этап</th><th className="num">%</th><th className="num">AED</th><th className="num hide-sm">Нарастающим</th><th>Статус</th></tr></thead>
           <tbody>
             {s.rows.map((r) => (
               <tr key={r.n} className={r === s.next ? 'highlight' : r.status === 'paid' ? 'dim' : ''}>
                 <td>{r.n}</td>
                 <td className="nowrap">{date(r.due_date)}</td>
-                <td className="small">{r.title}</td>
+                <td className="small hide-sm">{r.title}</td>
                 <td className="num">{r.percent}%</td>
                 <td className="num">{aed(r.amount_aed)}</td>
-                <td className="num muted">{aed(r.cumulativeAED)}</td>
+                <td className="num muted hide-sm">{aed(r.cumulativeAED)}</td>
                 <td className={'status-' + r.status + ' nowrap'}>{statusLabel[r.status]}</td>
               </tr>
             ))}
