@@ -18,7 +18,7 @@ const tabs = [
 ] as const
 type TabId = (typeof tabs)[number]['id']
 
-const fromHash = (): TabId => tabs.find((t) => '#' + t.id === location.hash)?.id ?? 'overview'
+const fromHash = (): TabId => tabs.find((t) => location.hash.startsWith('#' + t.id))?.id ?? 'overview'
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)

@@ -24,6 +24,8 @@ export interface Transaction {
   note: string | null
   /** Откуда взяли: «видео 1, Т-Банк» и т.п. */
   source: string | null
+  /** Метка «нужно уточнить». */
+  needs_review: boolean
 }
 
 export interface Rate {

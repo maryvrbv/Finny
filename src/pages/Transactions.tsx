@@ -11,10 +11,12 @@ export default function Transactions({ store }: { store: Store }) {
   const [who, setWho] = useState('')
   const [q, setQ] = useState('')
   const [adding, setAdding] = useState(false)
+  const [review, setReview] = useState(location.hash.includes('review'))
 
   const rows = data.transactions.filter(
     (t) =>
-      (!month || t.date.startsWith(month)) &&
+      (!review || t.needs_review) &&
+      (review || !month || t.date.startsWith(month)) &&
       (!cat || t.category_id === cat) &&
       (!who || t.who === who) &&
       (!q || (t.title + ' ' + (t.note ?? '')).toLowerCase().includes(q.toLowerCase())),
@@ -42,6 +44,10 @@ export default function Transactions({ store }: { store: Store }) {
           {whoOptions}
         </select>
         <input placeholder="Поиск…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <label className="check">
+          <input type="checkbox" checked={review} onChange={(e) => setReview(e.target.checked)} />
+          ❓ К уточнению ({data.transactions.filter((t) => t.needs_review).length})
+        </label>
         <button onClick={() => setAdding((v) => !v)}>{adding ? 'Отмена' : '+ Добавить'}</button>
       </div>
 
@@ -57,7 +63,7 @@ export default function Transactions({ store }: { store: Store }) {
           </thead>
           <tbody>
             {rows.map((t) => (
-              <tr key={t.id}>
+              <tr key={t.id} className={t.needs_review ? 'review' : ''}>
                 <td className="nowrap">
                   <input type="date" className="inline date" defaultValue={t.date}
                     onBlur={(e) => e.target.value && e.target.value !== t.date && upd(t.id, { date: e.target.value })} />
@@ -79,7 +85,12 @@ export default function Transactions({ store }: { store: Store }) {
                   <span className="muted small"> {t.currency}</span>
                 </td>
                 <td className="num nowrap muted">{t.currency === 'RUB' ? '' : fmt(toRub(t.amount, t.currency))}</td>
-                <td>
+                <td className="nowrap">
+                  <button
+                    className={'ghost small' + (t.needs_review ? ' on' : '')}
+                    title={t.needs_review ? 'Снять метку «уточнить»' : 'Пометить «нужно уточнить»'}
+                    onClick={() => upd(t.id, { needs_review: !t.needs_review })}
+                  >❓</button>{' '}
                   <button className="ghost small" title="Удалить"
                     onClick={() => confirm(`Удалить «${t.title}»?`) && store.remove('finny_transactions', 'id', t.id)}>✕</button>
                 </td>

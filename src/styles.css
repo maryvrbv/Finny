@@ -115,3 +115,7 @@ tr.newrow td { background: var(--highlight); }
 input.inline.date { width: 9.5em; }
 input.inline.amount { width: 8em; text-align: right; }
 .top > .small { white-space: nowrap; }
+tr.review td { background: color-mix(in srgb, var(--serious) 10%, transparent); }
+button.ghost.on { background: var(--serious); color: #fff; border-color: var(--serious); }
+label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; white-space: nowrap; }
+.review-banner { color: inherit; text-decoration: none; }

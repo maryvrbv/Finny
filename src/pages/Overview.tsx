@@ -63,6 +63,12 @@ export default function Overview({ store }: { store: Store }) {
         )}
       </section>
 
+      {data.transactions.some((t) => t.needs_review) && (
+        <a className="banner review-banner" href="#transactions-review">
+          ❓ Нужно уточнить {data.transactions.filter((t) => t.needs_review).length} операций — открыть список
+        </a>
+      )}
+
       {tx.length === 0 && (
         <div className="empty">За этот месяц операций ещё нет. Присылай видео/скрины из банков — перенесу, или добавь вручную во вкладке «Траты».</div>
       )}
