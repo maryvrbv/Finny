@@ -4,3 +4,4 @@ create index finny_transactions_review_idx on public.finny_transactions (needs_r
 insert into public.finny_categories (id,name,emoji,grp,kind,sort) values ('interest','Проценты по вкладам','📈','Доходы','income',21) on conflict (id) do nothing;
 insert into public.finny_categories (id,name,emoji,grp,kind,sort) values ('pets','Питомцы','🐱','Дом','expense',12) on conflict (id) do nothing;
 insert into public.finny_categories (id,name,emoji,grp,kind,sort) values ('cleaning','Уборка','🧹','Жильё','expense',3) on conflict (id) do nothing;
+insert into public.finny_categories (id,name,emoji,grp,kind,sort) values ('fraud','Потери / мошенники','🚨','Прочее','expense',19) on conflict (id) do nothing;
