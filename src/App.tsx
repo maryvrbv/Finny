@@ -14,7 +14,7 @@ const tabs = [
   { id: 'transactions', label: 'Траты' },
   { id: 'dubai', label: '🏙️ Квартира' },
   { id: 'plan', label: 'План' },
-  { id: 'admin', label: '⚙️ Админка' },
+  { id: 'admin', label: '⚙️ Настройки' },
 ] as const
 type TabId = (typeof tabs)[number]['id']
 
@@ -68,7 +68,7 @@ function Main({ email }: { email: string }) {
         {!store.data ? (
           !store.error && <p className="muted">Загружаю данные…</p>
         ) : store.data.members.length === 0 ? (
-          <div className="empty">У аккаунта {email} нет доступа к Finny. Попросите админа добавить этот email во вкладке «Админка».</div>
+          <div className="empty">У аккаунта {email} нет доступа к Finny. Попросите админа добавить этот email во вкладке «Настройки → Доступ».</div>
         ) : (
           <>
             {tab === 'overview' && <Overview store={store as Store} />}

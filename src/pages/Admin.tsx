@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { today, type Store } from '../lib/store'
 import { PEOPLE } from '../types'
 import { CrudTable } from './CrudTable'
+import { useInstall } from '../lib/pwa'
 
 const sections = [
+  { id: 'app', label: '📱 Приложение' },
   { id: 'payments', label: '🏙️ Платежи за квартиру' },
   { id: 'categories', label: 'Категории' },
   { id: 'rates', label: 'Курсы валют' },
@@ -15,14 +17,14 @@ const sections = [
 const people = Object.entries(PEOPLE).map(([value, label]) => ({ value, label }))
 
 export default function Admin({ store }: { store: Store }) {
-  const [sec, setSec] = useState<(typeof sections)[number]['id']>('payments')
+  const [sec, setSec] = useState<(typeof sections)[number]['id']>('app')
   const { data } = store
   const catOptions = data.categories.map((c) => ({ value: c.id, label: `${c.emoji} ${c.name}` }))
   const used = new Set([...data.transactions.map((t) => t.category_id), ...data.budget.map((b) => b.category_id)])
 
   return (
     <>
-      <div className="toolbar"><h1>⚙️ Админка</h1></div>
+      <div className="toolbar"><h1>⚙️ Настройки</h1></div>
       <div className="subnav">
         {sections.map((s) => (
           <button key={s.id} className={sec === s.id ? '' : 'ghost'} onClick={() => setSec(s.id)}>{s.label}</button>
@@ -31,6 +33,8 @@ export default function Admin({ store }: { store: Store }) {
       <p className="muted small">Изменения сохраняются сразу при выходе из поля. Всё хранится в Supabase.</p>
 
       <section className="card">
+        {sec === 'app' && <AppSection />}
+
         {sec === 'payments' && (
           <>
             <h2>Фактические платежи за квартиру</h2>
@@ -179,6 +183,37 @@ export default function Admin({ store }: { store: Store }) {
           </>
         )}
       </section>
+    </>
+  )
+}
+
+function AppSection() {
+  const pwa = useInstall()
+  return (
+    <>
+      <h2>Установить Finny на телефон или компьютер</h2>
+      {pwa.installed ? (
+        <p>✓ Приложение уже установлено — вы сейчас в нём.</p>
+      ) : pwa.canPrompt ? (
+        <>
+          <p className="muted small">Finny появится на экране «Домой» как отдельное приложение, без адресной строки браузера.</p>
+          <button className="big" onClick={() => pwa.install()}>📲 Установить приложение</button>
+        </>
+      ) : pwa.ios ? (
+        <ol className="steps">
+          <li>Откройте Finny в <b>Safari</b>.</li>
+          <li>Нажмите кнопку <b>«Поделиться»</b> (квадрат со стрелкой вверх).</li>
+          <li>Выберите <b>«На экран „Домой“»</b> и нажмите <b>«Добавить»</b>.</li>
+        </ol>
+      ) : (
+        <>
+          <button className="big" disabled>📲 Установить приложение</button>
+          <p className="muted small">
+            Браузер пока не предложил установку. В Chrome/Edge откройте меню ⋮ → «Установить приложение»
+            (или «Добавить на главный экран» на Android). Кнопка станет активной, как только браузер будет готов.
+          </p>
+        </>
+      )}
     </>
   )
 }

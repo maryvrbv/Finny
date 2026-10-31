@@ -119,3 +119,7 @@ tr.review td { background: color-mix(in srgb, var(--serious) 10%, transparent); 
 button.ghost.on { background: var(--serious); color: #fff; border-color: var(--serious); }
 label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; white-space: nowrap; }
 .review-banner { color: inherit; text-decoration: none; }
+button.big { padding: 12px 20px; font-size: 16px; border-radius: 12px; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+ol.steps { padding-left: 20px; line-height: 1.8; }
+body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }

@@ -30,7 +30,7 @@ export default function Plan({ store }: { store: Store }) {
           {months.map((m) => <option key={m} value={m}>факт: {monthLabel(m)}</option>)}
         </select>
       </div>
-      <p className="muted small">Статьи плана редактируются во вкладке «Админка».</p>
+      <p className="muted small">Статьи плана редактируются во вкладке «Настройки».</p>
 
       <section className="stats">
         <Stat label="Доходы (с премиями)" value={fmt(income)} />
