@@ -1,0 +1,32 @@
+{
+  "income": [
+    { "who": "mary", "title": "Зарплата", "monthlyRUB": 250000 },
+    { "who": "dima", "title": "Зарплата", "monthlyRUB": 250000 },
+    { "who": "mary", "title": "Премии (800 000 в год)", "monthlyRUB": 66667 },
+    { "who": "dima", "title": "Премии (1 000 000 в год)", "monthlyRUB": 83333 }
+  ],
+  "savings": [
+    { "who": "mary", "title": "Откладываю на квартиру", "monthlyRUB": 175000 },
+    { "who": "dima", "title": "Откладываю на квартиру", "monthlyRUB": 175000 }
+  ],
+  "expenses": [
+    { "title": "Таблетки", "categoryId": "health", "who": "dima", "monthlyRUB": 3000 },
+    { "title": "Таблетки", "categoryId": "health", "who": "mary", "monthlyRUB": 7000 },
+    { "title": "Врачи", "categoryId": "health", "who": "mary", "monthlyRUB": 6500 },
+    { "title": "Вокал", "categoryId": "education", "who": "mary", "monthlyRUB": 10000 },
+    { "title": "Кофе", "categoryId": "cafe", "who": "dima", "monthlyRUB": 1200 },
+    { "title": "Обеды на работе", "categoryId": "cafe", "who": "dima", "monthlyRUB": 11000 },
+    { "title": "Обеды на работе", "categoryId": "cafe", "who": "mary", "monthlyRUB": 4950 },
+    { "title": "Связь", "categoryId": "utilities", "who": "dima", "monthlyRUB": 500 },
+    { "title": "Связь", "categoryId": "utilities", "who": "mary", "monthlyRUB": 500 },
+    { "title": "Завтраки", "categoryId": "cafe", "who": "dima", "monthlyRUB": 3150 },
+    { "title": "ChatGPT", "categoryId": "subscriptions", "who": "joint", "monthlyRUB": 2000 },
+    { "title": "Квартира (Москва)", "categoryId": "rent", "who": "joint", "monthlyRUB": 15000 },
+    { "title": "Машина: страховка (70 000/год)", "categoryId": "car", "who": "joint", "monthlyRUB": 5833 },
+    { "title": "Машина: бензин", "categoryId": "car", "who": "joint", "monthlyRUB": 10800 },
+    { "title": "Машина: ТО (30 000/год)", "categoryId": "car", "who": "joint", "monthlyRUB": 2500 },
+    { "title": "Машина: налог (10 000/год)", "categoryId": "car", "who": "joint", "monthlyRUB": 833 },
+    { "title": "Продукты", "categoryId": "groceries", "who": "joint", "monthlyRUB": 58900 },
+    { "title": "Дебетовые/кредитные карты (76 000/год)", "categoryId": "fees", "who": "joint", "monthlyRUB": 6333 }
+  ]
+}
