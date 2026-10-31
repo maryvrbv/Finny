@@ -1,96 +1,147 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { Account, Budget, Category, DubaiProperty, Settings, Transaction } from '../types'
-import settingsJson from '../data/settings.json'
-import categoriesJson from '../data/categories.json'
-import accountsJson from '../data/accounts.json'
-import budgetJson from "../data/budget.json"
-import dubaiJson from '../data/dubai.json'
+import { useCallback, useEffect, useState } from 'react'
+import { supabase } from './supabase'
+import type { BudgetLine, Category, DubaiPayment, Installment, Member, Property, Rate, Transaction } from '../types'
 
-// Все месячные файлы src/data/transactions/YYYY-MM.json подтягиваются автоматически.
-const monthFiles = import.meta.glob<Transaction[]>('../data/transactions/*.json', {
-  eager: true,
-  import: 'default',
-})
-
-export const baseTransactions: Transaction[] = Object.values(monthFiles).flat()
-export const settings = settingsJson as Settings
-export const accounts = accountsJson as Account[]
-export const dubai = dubaiJson as DubaiProperty
-export const budget = budgetJson as Budget
-
-/**
- * Правки из интерфейса хранятся в localStorage поверх данных из git.
- * Кнопка «Экспорт» выгружает итоговый JSON, который потом коммитится в репозиторий.
- */
-interface LocalState {
-  edits: Record<string, Partial<Transaction>>
-  added: Transaction[]
-  deleted: string[]
-  categories: Category[] | null
+export interface Data {
+  categories: Category[]
+  transactions: Transaction[]
+  rates: Record<string, number>
+  rateRows: Rate[]
+  budget: BudgetLine[]
+  property: Property | null
+  plan: Installment[]
+  payments: DubaiPayment[]
+  members: Member[]
 }
 
-const KEY = 'finny:local:v1'
-const empty: LocalState = { edits: {}, added: [], deleted: [], categories: null }
+const num = <T,>(rows: T[], keys: (keyof T)[]): T[] =>
+  rows.map((r) => {
+    const o = { ...r }
+    for (const k of keys) if (o[k] != null) (o as Record<keyof T, unknown>)[k] = Number(o[k])
+    return o
+  })
 
-function load(): LocalState {
-  try {
-    return { ...empty, ...JSON.parse(localStorage.getItem(KEY) || '{}') }
-  } catch {
-    return empty
+async function q<T>(p: PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
+  const { data, error } = await p
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+async function loadAll(): Promise<Data> {
+  const [categories, transactions, rateRows, budget, property, plan, payments, members] = await Promise.all([
+    q<Category>(supabase.from('finny_categories').select('*').order('sort')),
+    q<Transaction>(supabase.from('finny_transactions').select('*').order('date', { ascending: false }).order('created_at', { ascending: false })),
+    q<Rate>(supabase.from('finny_rates').select('*').order('currency')),
+    q<BudgetLine>(supabase.from('finny_budget').select('*').order('sort')),
+    q<Property>(supabase.from('finny_property').select('*').eq('id', 'dubai')),
+    q<Installment>(supabase.from('finny_dubai_plan').select('*').order('n')),
+    q<DubaiPayment>(supabase.from('finny_dubai_payments').select('*').order('date')),
+    q<Member>(supabase.from('finny_members').select('email,person,is_admin').order('email')),
+  ])
+  const rates = num(rateRows, ['rub'])
+  const prop = num(property, ['price_aed', 'monthly_savings_rub', 'planning_rate_rub'])[0] ?? null
+  return {
+    categories,
+    transactions: num(transactions, ['amount']),
+    rateRows: rates,
+    rates: Object.fromEntries(rates.map((r) => [r.currency, r.rub])),
+    budget: num(budget, ['monthly_rub']),
+    property: prop,
+    plan: num(plan, ['percent', 'amount_aed']),
+    payments: num(payments, ['aed', 'rub_mary', 'rub_dima']),
+    members,
   }
+}
+
+type Table =
+  | 'finny_categories' | 'finny_transactions' | 'finny_rates' | 'finny_budget'
+  | 'finny_property' | 'finny_dubai_plan' | 'finny_dubai_payments' | 'finny_members'
+
+const tableField: Record<Table, keyof Data> = {
+  finny_categories: 'categories',
+  finny_transactions: 'transactions',
+  finny_rates: 'rateRows',
+  finny_budget: 'budget',
+  finny_property: 'property',
+  finny_dubai_plan: 'plan',
+  finny_dubai_payments: 'payments',
+  finny_members: 'members',
 }
 
 export function useStore() {
-  const [local, setLocal] = useState<LocalState>(load)
-  useEffect(() => localStorage.setItem(KEY, JSON.stringify(local)), [local])
+  const [data, setData] = useState<Data | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
-  const categories = local.categories ?? (categoriesJson as Category[])
+  const reload = useCallback(async () => {
+    try {
+      setData(await loadAll())
+      setError(null)
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }, [])
 
-  const transactions = useMemo(() => {
-    const deleted = new Set(local.deleted)
-    return [...baseTransactions, ...local.added]
-      .filter((t) => !deleted.has(t.id))
-      .map((t) => ({ ...t, ...local.edits[t.id] }))
-      .sort((a, b) => b.date.localeCompare(a.date))
-  }, [local])
+  useEffect(() => {
+    reload()
+  }, [reload])
 
-  const hasLocalChanges =
-    Object.keys(local.edits).length > 0 || local.added.length > 0 || local.deleted.length > 0 || !!local.categories
+  /** Обёртка для записи: показывает ошибку и перезагружает данные. */
+  const write = useCallback(
+    async (fn: () => PromiseLike<{ error: { message: string } | null }>) => {
+      setSaving(true)
+      const { error } = await fn()
+      setSaving(false)
+      if (error) {
+        alert('Не удалось сохранить: ' + error.message)
+        return false
+      }
+      await reload()
+      return true
+    },
+    [reload],
+  )
+
+  const insert = (t: Table, row: object) => write(() => supabase.from(t).insert(row))
+  const remove = (t: Table, key: string, id: string | number) => {
+    patchLocal(t, (rows) => rows.filter((r) => String(r[key]) !== String(id)))
+    return write(() => supabase.from(t).delete().eq(key, id))
+  }
+  /** Оптимистично: сразу меняем локально, потом сохраняем и сверяемся с базой. */
+  const update = (t: Table, key: string, id: string | number, patch: object) => {
+    patchLocal(t, (rows) => rows.map((r) => (String(r[key]) === String(id) ? { ...r, ...patch } : r)))
+    return write(() => supabase.from(t).update(patch).eq(key, id))
+  }
+
+  function patchLocal(t: Table, fn: (rows: Record<string, unknown>[]) => Record<string, unknown>[]) {
+    const field = tableField[t]
+    setData((d) => {
+      if (!d) return d
+      if (field === 'property') return d.property ? { ...d, property: fn([d.property as never])[0] as never } : d
+      return { ...d, [field]: fn(d[field] as never) }
+    })
+  }
 
   return {
-    categories,
-    transactions,
-    hasLocalChanges,
-    updateTransaction: (id: string, patch: Partial<Transaction>) =>
-      setLocal((s) => ({ ...s, edits: { ...s.edits, [id]: { ...s.edits[id], ...patch } } })),
-    addTransaction: (t: Transaction) => setLocal((s) => ({ ...s, added: [...s.added, t] })),
-    deleteTransaction: (id: string) => setLocal((s) => ({ ...s, deleted: [...s.deleted, id] })),
-    setCategories: (c: Category[]) => setLocal((s) => ({ ...s, categories: c })),
-    resetLocal: () => setLocal(empty),
-    exportJson: () => {
-      const byMonth: Record<string, Transaction[]> = {}
-      for (const t of [...transactions].reverse()) (byMonth[t.date.slice(0, 7)] ??= []).push(t)
-      download('finny-export.json', { categories, transactionsByMonth: byMonth })
-    },
+    data,
+    error,
+    saving,
+    reload,
+    insert,
+    update,
+    remove,
+    toRub: (amount: number, currency: string) => amount * (data?.rates[currency] ?? NaN),
   }
 }
 
-export type Store = ReturnType<typeof useStore>
+export type Store = ReturnType<typeof useStore> & { data: Data }
 
-function download(name: string, data: unknown) {
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
-  const a = Object.assign(document.createElement('a'), { href: url, download: name })
-  a.click()
-  URL.revokeObjectURL(url)
-}
+// ---------- форматирование ----------
 
-// ---------- деньги ----------
-
-export const toBase = (amount: number, currency: string) => amount * (settings.rates[currency] ?? NaN)
-
-export function fmt(amount: number, currency = settings.baseCurrency, digits = 0) {
-  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: digits, minimumFractionDigits: 0 }).format(amount) +
-    ' ' + currency
+export function fmt(amount: number, currency = '₽', digits = 0) {
+  if (!Number.isFinite(amount)) return '—'
+  amount = amount + 0 // убираем «-0»
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: digits }).format(amount) + ' ' + currency
 }
 
 export const monthLabel = (ym: string) => {
@@ -98,4 +149,4 @@ export const monthLabel = (ym: string) => {
   return s[0].toUpperCase() + s.slice(1)
 }
 
-export const newId = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+export const today = () => new Date().toISOString().slice(0, 10)

@@ -101,3 +101,17 @@ tr.highlight td { background: var(--highlight); font-weight: 600; }
 
 .addform { display: flex; flex-wrap: wrap; gap: 8px; }
 .catrow { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
+
+.login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login form { width: min(360px, 100%); display: grid; gap: 10px; }
+.login h1 { font-size: 26px; }
+.pad { padding: 48px; }
+.subnav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.mt { margin-top: 24px; }
+.button-link { background: var(--ink); color: var(--page); text-decoration: none; padding: 6px 12px; border-radius: 8px; }
+table.crud td { padding: 4px 6px; }
+table.crud input.inline { min-width: 70px; }
+tr.newrow td { background: var(--highlight); }
+input.inline.date { width: 9.5em; }
+input.inline.amount { width: 8em; text-align: right; }
+.top > .small { white-space: nowrap; }

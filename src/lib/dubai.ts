@@ -1,60 +1,54 @@
-import { dubai, settings } from './store'
-import type { DubaiInstallment } from '../types'
+import type { DubaiPayment, Installment, Property } from '../types'
+import { today } from './store'
 
 export type InstallmentStatus = 'paid' | 'partial' | 'due' | 'overdue' | 'upcoming'
 
-export interface InstallmentRow extends DubaiInstallment {
+export interface InstallmentRow extends Installment {
   status: InstallmentStatus
   paidAED: number
   cumulativeAED: number
 }
 
-const today = () => new Date().toISOString().slice(0, 10)
-
-export function dubaiSummary(now = today()) {
-  const feesAED = dubai.fees.reduce((s, f) => s + f.amountAED, 0)
-  const paidAED = dubai.payments.reduce((s, p) => s + p.aed, 0)
+export function dubaiSummary(property: Property, plan: Installment[], payments: DubaiPayment[], rateRUB: number, now = today()) {
+  const feesAED = property.fees.reduce((s, f) => s + f.amountAED, 0)
+  const paidAED = payments.reduce((s, p) => s + p.aed, 0)
   // Сначала платежи покрывают сборы, остальное — график по порядку.
   let pool = Math.max(0, paidAED - feesAED)
   let cumulative = 0
-  const rows: InstallmentRow[] = dubai.plan.map((i) => {
-    cumulative += i.amountAED
-    const paid = Math.min(pool, i.amountAED)
+  const rows: InstallmentRow[] = plan.map((i) => {
+    cumulative += i.amount_aed
+    const paid = Math.min(pool, i.amount_aed)
     pool -= paid
     let status: InstallmentStatus
-    if (paid >= i.amountAED) status = 'paid'
-    else if (i.dueDate < now) status = 'overdue'
+    if (paid >= i.amount_aed) status = 'paid'
+    else if (i.due_date < now) status = 'overdue'
     else if (paid > 0) status = 'partial'
-    else status = daysBetween(now, i.dueDate) <= 31 ? 'due' : 'upcoming'
+    else status = daysBetween(now, i.due_date) <= 31 ? 'due' : 'upcoming'
     return { ...i, status, paidAED: paid, cumulativeAED: cumulative }
   })
 
   const paidToPlanAED = rows.reduce((s, r) => s + r.paidAED, 0)
-  const remainingAED = dubai.priceAED - paidToPlanAED
-  const next = rows.find((r) => r.status !== 'paid')
-  const mary = dubai.payments.reduce((s, p) => s + p.rub.mary, 0)
-  const dima = dubai.payments.reduce((s, p) => s + p.rub.dima, 0)
-  const scheduledByNow = rows.filter((r) => r.dueDate <= now).reduce((s, r) => s + r.amountAED, 0)
-
-  // Ближайшие 12 месяцев: сколько AED и ₽ нужно и хватит ли накоплений.
+  const nextIdx = rows.findIndex((r) => r.status !== 'paid')
+  const mary = payments.reduce((s, p) => s + p.rub_mary, 0)
+  const dima = payments.reduce((s, p) => s + p.rub_dima, 0)
+  const scheduledByNow = rows.filter((r) => r.due_date <= now).reduce((s, r) => s + r.amount_aed, 0)
   const horizon = addMonths(now, 12)
-  const upcoming = rows.filter((r) => r.status !== 'paid' && r.dueDate <= horizon)
 
   return {
     rows,
     feesAED,
     paidAED,
     paidToPlanAED,
-    remainingAED,
-    paidPercent: (paidToPlanAED / dubai.priceAED) * 100,
+    remainingAED: property.price_aed - paidToPlanAED,
+    paidPercent: property.price_aed ? (paidToPlanAED / property.price_aed) * 100 : 0,
     aheadOfScheduleAED: paidToPlanAED - scheduledByNow,
-    next,
+    next: nextIdx >= 0 ? rows[nextIdx] : undefined,
+    lastPaid: nextIdx > 0 ? rows[nextIdx - 1] : nextIdx < 0 ? rows[rows.length - 1] : undefined,
     contributionsRUB: { mary, dima, total: mary + dima },
-    /** Сколько один должен другому, если доли 50/50. */
+    /** Сколько один должен другому, если доли 50/50 (плюс — Дима Маше). */
     equalizeRUB: (mary - dima) / 2,
-    upcoming,
-    rateRUB: settings.rates.AED,
-    planningRateRUB: dubai.planningRateRUB,
+    upcoming: rows.filter((r) => r.status !== 'paid' && r.due_date <= horizon),
+    rateRUB,
   }
 }
 

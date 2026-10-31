@@ -1,31 +1,14 @@
-export type Currency = 'AED' | 'RUB' | 'USD' | 'EUR' | 'USDT' | string
+// Типы строк таблиц Supabase (public.finny_*).
 export type PersonId = 'mary' | 'dima' | 'joint'
-
-export interface Settings {
-  baseCurrency: Currency
-  /** Сколько единиц базовой валюты стоит 1 единица валюты. */
-  rates: Record<Currency, number>
-  ratesDate: string
-  ratesNote?: string
-  people: Record<PersonId, string>
-}
+export const PEOPLE: Record<PersonId, string> = { mary: 'Маша', dima: 'Дима', joint: 'Общее' }
 
 export interface Category {
   id: string
   name: string
   emoji: string
-  group: string
+  grp: string
   kind: 'expense' | 'income' | 'transfer'
-}
-
-export interface Account {
-  id: string
-  name: string
-  currency: Currency
-  owner: PersonId
-  /** Остаток на дату balanceDate (null — неизвестно). */
-  balance: number | null
-  balanceDate: string | null
+  sort: number
 }
 
 export interface Transaction {
@@ -34,61 +17,67 @@ export interface Transaction {
   title: string
   /** Минус — расход, плюс — доход. В валюте операции. */
   amount: number
-  currency: Currency
-  categoryId: string
-  accountId?: string
+  currency: string
+  category_id: string
   who: PersonId
-  note?: string
-  /** Откуда взяли: «видео 1», «выписка Тинькофф» и т.п. */
-  source?: string
+  account: string | null
+  note: string | null
+  /** Откуда взяли: «видео 1, Т-Банк» и т.п. */
+  source: string | null
 }
 
-export interface DubaiInstallment {
-  n: number
-  title: string
-  dueDate: string
-  percent: number
-  amountAED: number
-}
-
-export interface DubaiPayment {
-  date: string
-  bank: string
-  /** Сколько AED ушло застройщику этим платежом. */
-  aed: number
-  /** Сколько рублей внёс каждый. */
-  rub: { mary: number; dima: number }
-  note?: string
-}
-
-export interface DubaiProperty {
-  name: string
-  developer: string
-  unit: string
-  owner: string
-  priceAED: number
-  bookingDate: string
-  handoverDate: string
-  escrowBank: string
-  fees: { title: string; amountAED: number }[]
-  /** Сколько откладываем в месяц под квартиру. */
-  monthlySavingsRUB: number
-  /** Курс AED→RUB для планирования (с запасом). */
-  planningRateRUB: number
-  plan: DubaiInstallment[]
-  payments: DubaiPayment[]
+export interface Rate {
+  currency: string
+  /** Сколько рублей стоит 1 единица валюты. */
+  rub: number
+  updated_at?: string
 }
 
 export interface BudgetLine {
+  id: string
+  kind: 'income' | 'savings' | 'expense'
   title: string
-  categoryId: string
   who: PersonId
-  monthlyRUB: number
-  note?: string
+  category_id: string | null
+  monthly_rub: number
+  sort: number
 }
 
-export interface Budget {
-  income: { who: PersonId; title: string; monthlyRUB: number }[]
-  savings: { who: PersonId; title: string; monthlyRUB: number }[]
-  expenses: BudgetLine[]
+export interface Property {
+  id: string
+  name: string
+  developer: string | null
+  unit: string | null
+  owner: string | null
+  price_aed: number
+  booking_date: string | null
+  handover_date: string | null
+  escrow_bank: string | null
+  monthly_savings_rub: number
+  planning_rate_rub: number
+  fees: { title: string; amountAED: number }[]
+}
+
+export interface Installment {
+  n: number
+  title: string
+  due_date: string
+  percent: number
+  amount_aed: number
+}
+
+export interface DubaiPayment {
+  id: string
+  date: string
+  bank: string | null
+  aed: number
+  rub_mary: number
+  rub_dima: number
+  note: string | null
+}
+
+export interface Member {
+  email: string
+  person: PersonId
+  is_admin: boolean
 }
