@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { fmt, monthLabel, today, type Store } from '../lib/store'
 import { PEOPLE, type PersonId } from '../types'
 import { useMonths } from './Overview'
+import { isBig } from '../lib/big'
 
 export default function Transactions({ store }: { store: Store }) {
   const { data, toRub } = store
@@ -73,6 +74,7 @@ export default function Transactions({ store }: { store: Store }) {
                     onBlur={(e) => e.target.value && e.target.value !== t.date && upd(t.id, { date: e.target.value })} />
                 </td>
                 <td>
+                  {data.categories.find((c) => c.id === t.category_id)?.kind === 'expense' && isBig(toRub(t.amount, t.currency)) && <span className="big-tag">💎 крупная</span>}
                   <input className="inline" defaultValue={t.title}
                     onBlur={(e) => e.target.value !== t.title && upd(t.id, { title: e.target.value })} />
                   {(t.note || t.source) && <div className="muted small">{[t.note, t.source].filter(Boolean).join(' · ')}</div>}
@@ -182,7 +184,7 @@ function MobileList({ store, rows, total }: { store: Store; rows: Tx[]; total: n
                   <button className="tx-row" onClick={() => setOpen(isOpen ? null : t.id)} aria-expanded={isOpen}>
                     <span className="tx-ico" aria-hidden="true">{t.needs_review ? '❓' : c?.emoji ?? '📦'}</span>
                     <span className="tx-main">
-                      <span className="tx-title">{t.title}</span>
+                      <span className="tx-title">{c?.kind === 'expense' && isBig(toRub(t.amount, t.currency)) && <span className="big-tag">💎 крупная</span>}{t.title}</span>
                       <span className="tx-meta">{c?.name ?? t.category_id} · {PEOPLE[t.who]}</span>
                     </span>
                     <span className={'tx-amount' + (t.amount > 0 ? ' pos' : '')}>

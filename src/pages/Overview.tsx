@@ -3,6 +3,8 @@ import { fmt, monthLabel, today, type Store } from '../lib/store'
 import { dubaiSummary, daysBetween } from '../lib/dubai'
 import { PEOPLE } from '../types'
 import { BarList, Stat } from './ui'
+import { BIG_PURCHASE_RUB, isBig } from '../lib/big'
+import type { Transaction } from '../types'
 
 export function useMonths(store: Store) {
   return useMemo(() => {
@@ -24,6 +26,10 @@ export default function Overview({ store }: { store: Store }) {
   const expenses = tx.filter((t) => kind(t.category_id) === 'expense')
   const spent = -expenses.reduce((s, t) => s + toRub(t.amount, t.currency), 0)
   const income = tx.filter((t) => kind(t.category_id) === 'income').reduce((s, t) => s + toRub(t.amount, t.currency), 0)
+  const big = expenses
+    .filter((t) => isBig(toRub(t.amount, t.currency)))
+    .sort((a, b) => toRub(a.amount, a.currency) - toRub(b.amount, b.currency))
+  const bigTotal = -big.reduce((s, t) => s + toRub(t.amount, t.currency), 0)
   const planned = data.budget.filter((b) => b.kind === 'expense').reduce((s, l) => s + l.monthly_rub, 0)
 
   const byCat = new Map<string, number>()
@@ -51,6 +57,7 @@ export default function Overview({ store }: { store: Store }) {
 
       <section className="stats">
         <Stat label="Потрачено" value={fmt(spent)} sub={`план ${fmt(planned)} без квартиры`} />
+        <Stat label="Без крупных покупок" value={fmt(spent - bigTotal)} sub={`💎 крупные: ${fmt(bigTotal)}`} />
         <Stat label="Доходы" value={fmt(income)} sub={`${tx.length} операций`} />
         <Stat label="Баланс месяца" value={fmt(income - spent)} sub="доходы − расходы" />
         {d?.next && (
@@ -73,10 +80,29 @@ export default function Overview({ store }: { store: Store }) {
         <div className="empty">За этот месяц операций ещё нет. Присылай видео/скрины из банков — перенесу, или добавь вручную во вкладке «Траты».</div>
       )}
 
+      {big.length > 0 && (
+        <section className="card">
+          <h2>💎 Крупные покупки месяца <span className="muted small">· от {fmt(BIG_PURCHASE_RUB)}</span></h2>
+          <ul className="op-list">
+            {big.map((t) => (
+              <li key={t.id}>
+                <span className="op-ico">{catById[t.category_id]?.emoji ?? '📦'}</span>
+                <span className="op-main">
+                  <span className="op-title">{t.title}</span>
+                  <span className="op-meta">{dayShort(t.date)} · {catById[t.category_id]?.name}</span>
+                </span>
+                <span className="op-amount num">{fmt(toRub(t.amount, t.currency))}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="op-total"><span>Итого крупных</span><span className="num">{fmt(bigTotal)}</span></div>
+        </section>
+      )}
+
       <div className="grid2">
         <section className="card">
           <h2>По категориям</h2>
-          <BarList rows={catRows} format={(v) => fmt(v)} />
+          <CategoryBreakdown rows={catRows} txByCat={expenses} toRub={toRub} />
         </section>
         <section className="card">
           <h2>Кто тратил</h2>
@@ -84,5 +110,56 @@ export default function Overview({ store }: { store: Store }) {
         </section>
       </div>
     </>
+  )
+}
+
+const dayShort = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+
+/** Категории как раскрывающийся список: бар + сумма, по тапу — все операции категории. */
+function CategoryBreakdown({ rows, txByCat, toRub }: {
+  rows: { key: string; label: string; value: number }[]
+  txByCat: Transaction[]
+  toRub: (a: number, c: string) => number
+}) {
+  const [open, setOpen] = useState<string | null>(null)
+  const max = Math.max(1, ...rows.map((r) => r.value))
+  if (!rows.length) return <p className="muted">Пока нет данных.</p>
+  return (
+    <div className="barlist">
+      {rows.map((r) => {
+        const isOpen = open === r.key
+        const list = txByCat.filter((t) => t.category_id === r.key).sort((a, b) => b.date.localeCompare(a.date))
+        const bigCount = list.filter((t) => isBig(toRub(t.amount, t.currency))).length
+        return (
+          <div key={r.key} className={'cat' + (isOpen ? ' open' : '')}>
+            <button className="barrow cat-row" onClick={() => setOpen(isOpen ? null : r.key)} aria-expanded={isOpen}>
+              <span className="barlabel cat-label">
+                <span className="cat-name">{r.label}</span>
+                {bigCount > 0 && <span className="big-dot" title="Есть крупные покупки">💎</span>}
+              </span>
+              <span className="bartrack"><span className="bar" style={{ width: `${(r.value / max) * 100}%` }} /></span>
+              <span className="barvalue num">{fmt(r.value)} <span className="chev" aria-hidden="true">{isOpen ? '▴' : '▾'}</span></span>
+            </button>
+            {isOpen && (
+              <ul className="op-list nested">
+                {list.map((t) => {
+                  const rub = toRub(t.amount, t.currency)
+                  return (
+                    <li key={t.id} className={isBig(rub) ? 'big' : ''}>
+                      <span className="op-main">
+                        <span className="op-title">{isBig(rub) && '💎 '}{t.title}</span>
+                        <span className="op-meta">{dayShort(t.date)}{t.currency !== 'RUB' ? ` · ${fmt(t.amount, t.currency, 2)}` : ''}</span>
+                      </span>
+                      <span className={'op-amount num' + (rub > 0 ? ' pos' : '')}>{rub > 0 ? '+' : ''}{fmt(rub)}</span>
+                    </li>
+                  )
+                })}
+                <li className="op-foot"><span className="muted small">{list.length} операций</span></li>
+              </ul>
+            )}
+          </div>
+        )
+      })}
+    </div>
   )
 }
