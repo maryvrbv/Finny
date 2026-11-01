@@ -286,3 +286,8 @@ select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
   .toolbar > select:not(.month-select) { flex: 1 1 100%; width: 100%; }
   .app { overflow-x: clip; }
 }
+
+/* ---------- график застройщика ---------- */
+h3.sub { font-size: 13.5px; color: var(--muted); font-weight: 650; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.03em; }
+table.years td, table.years th { padding: 8px 6px; }
+tr.year-total td { background: var(--track); font-weight: 650; border-bottom: 2px solid var(--axis); }

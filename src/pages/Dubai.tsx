@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { fmt, today, type Store } from '../lib/store'
 import { dubaiSummary, monthsBetween, type InstallmentStatus } from '../lib/dubai'
 import { BarList, Progress, Stat } from './ui'
@@ -18,6 +19,17 @@ export default function Dubai({ store }: { store: Store }) {
   const { property: p, plan, payments, rates } = store.data
   if (!p) return <p className="muted">Квартира не заведена.</p>
   const s = dubaiSummary(p, plan, payments, rates.AED)
+  const planRate = p.planning_rate_rub
+  const years = Object.values(
+    s.rows.reduce<Record<string, { year: string; count: number; aed: number; leftAED: number }>>((acc, r) => {
+      const y = r.due_date.slice(0, 4)
+      const e = (acc[y] ??= { year: y, count: 0, aed: 0, leftAED: 0 })
+      e.count += 1
+      e.aed += r.amount_aed
+      e.leftAED += r.amount_aed - r.paidAED
+      return acc
+    }, {}),
+  )
   const now = today()
 
   let need = 0
@@ -133,20 +145,70 @@ export default function Dubai({ store }: { store: Store }) {
 
       <section className="card table-wrap">
         <h2>График застройщика ({plan.length} платежей)</h2>
-        <table>
-          <thead><tr><th>#</th><th>Дата</th><th className="hide-sm">Этап</th><th className="num">%</th><th className="num">AED</th><th className="num hide-sm">Нарастающим</th><th>Статус</th></tr></thead>
+        <p className="muted small">Рубли — по плановому курсу {p.planning_rate_rub} ₽/AED (меняется в «Настройки → Квартира и график»).</p>
+
+        <h3 className="sub">По годам</h3>
+        <table className="years">
+          <thead>
+            <tr><th>Год</th><th className="num hide-sm">Платежей</th><th className="num">AED</th><th className="num">₽</th><th className="num">Осталось, ₽</th></tr>
+          </thead>
           <tbody>
-            {s.rows.map((r) => (
-              <tr key={r.n} className={r === s.next ? 'highlight' : r.status === 'paid' ? 'dim' : ''}>
-                <td>{r.n}</td>
-                <td className="nowrap">{date(r.due_date)}</td>
-                <td className="small hide-sm">{r.title}</td>
-                <td className="num">{r.percent}%</td>
-                <td className="num">{aed(r.amount_aed)}</td>
-                <td className="num muted hide-sm">{aed(r.cumulativeAED)}</td>
-                <td className={'status-' + r.status + ' nowrap'}>{statusLabel[r.status]}</td>
+            {years.map((y) => (
+              <tr key={y.year} className={y.leftAED <= 0.5 ? 'dim' : ''}>
+                <td><b>{y.year}</b></td>
+                <td className="num hide-sm">{y.count}</td>
+                <td className="num">{aed(y.aed)}</td>
+                <td className="num">{rub(y.aed * planRate)}</td>
+                <td className={'num' + (y.leftAED > 0.5 ? '' : ' ok')}>{y.leftAED > 0.5 ? rub(y.leftAED * planRate) : '✓ оплачено'}</td>
               </tr>
             ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Всего</td><td className="num hide-sm">{plan.length}</td>
+              <td className="num">{aed(years.reduce((a, y) => a + y.aed, 0))}</td>
+              <td className="num">{rub(years.reduce((a, y) => a + y.aed, 0) * planRate)}</td>
+              <td className="num">{rub(years.reduce((a, y) => a + y.leftAED, 0) * planRate)}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <h3 className="sub">Все платежи</h3>
+        <table>
+          <thead><tr><th>#</th><th>Дата</th><th className="hide-sm">Этап</th><th className="num hide-sm">%</th><th className="num">AED</th><th className="num">₽</th><th className="num hide-sm">Нарастающим</th><th><span className="hide-sm">Статус</span></th></tr></thead>
+          <tbody>
+            {s.rows.map((r, i) => {
+              const year = r.due_date.slice(0, 4)
+              const lastOfYear = s.rows[i + 1]?.due_date.slice(0, 4) !== year
+              const y = years.find((x) => x.year === year)!
+              return (
+                <Fragment key={r.n}>
+                  <tr className={r === s.next ? 'highlight' : r.status === 'paid' ? 'dim' : ''}>
+                    <td>{r.n}</td>
+                    <td className="nowrap">{date(r.due_date)}</td>
+                    <td className="small hide-sm">{r.title}</td>
+                    <td className="num hide-sm">{r.percent}%</td>
+                    <td className="num">{aed(r.amount_aed)}</td>
+                    <td className="num">{rub(r.amount_aed * planRate)}</td>
+                    <td className="num muted hide-sm">{aed(r.cumulativeAED)}</td>
+                    <td className={'status-' + r.status + ' nowrap'}>
+                      {statusLabel[r.status].split(' ')[0]}<span className="hide-sm"> {statusLabel[r.status].split(' ').slice(1).join(' ')}</span>
+                    </td>
+                  </tr>
+                  {lastOfYear && (
+                    <tr className="year-total">
+                      <td colSpan={2}>Итого {year}</td>
+                      <td className="hide-sm" />
+                      <td className="hide-sm" />
+                      <td className="num">{aed(y.aed)}</td>
+                      <td className="num">{rub(y.aed * planRate)}</td>
+                      <td className="hide-sm" />
+                      <td className="nowrap small">{y.leftAED > 0.5 ? <span className="hide-sm">осталось {rub(y.leftAED * planRate)}</span> : '✓'}</td>
+                    </tr>
+                  )}
+                </Fragment>
+              )
+            })}
           </tbody>
         </table>
       </section>
