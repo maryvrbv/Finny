@@ -26,3 +26,7 @@ create index finny_transactions_account_idx on public.finny_transactions (accoun
 
 -- Озон Банк пополняется с общего счёта → считается общим кошельком
 -- (update finny_accounts set owner='joint' where id='ozon-mary' — выполнено в данных)
+
+-- В базе осталась пустая колонка finny_transactions.funded_by (не используется:
+-- «чьими деньгами» считается в приложении, src/lib/funding.ts). Удалить при случае:
+-- alter table public.finny_transactions drop column if exists funded_by;
