@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { fmt, matchAccount, monthLabel, today, type Store, useSessionState } from '../lib/store'
+import { useEffect, useMemo, useState } from 'react'
+import { fmt, monthLabel, today, type Store, useSessionState } from '../lib/store'
+import { fundingShares, scopeTransactions, shareLabel, WALLETS } from '../lib/funding'
 import { AccountFilter } from './ui'
 import { PEOPLE, type PersonId } from '../types'
 import { useMonths } from './Overview'
@@ -20,16 +21,19 @@ export default function Transactions({ store }: { store: Store }) {
     if (m) setAcc(m[1])
   }, [setAcc])
 
-  const rows = data.transactions.filter(
+  const shares = useMemo(() => fundingShares(data.transactions, data.accounts), [data.transactions, data.accounts])
+  const scoped = scopeTransactions(data.transactions, data.accounts, acc, shares)
+  const scopedAmount = new Map(scoped.map((t) => [t.id, t.amount]))
+  // В списке — полные суммы (чтобы правки не записали долю), в итоге — доли по фильтру.
+  const rows = data.transactions.filter((t) => scopedAmount.has(t.id)).filter(
     (t) =>
       (!review || t.needs_review) &&
       (review || !month || t.date.startsWith(month)) &&
       (!cat || t.category_id === cat) &&
       (!who || t.who === who) &&
-      matchAccount(acc, t.account_id, data.accounts) &&
       (!q || (t.title + ' ' + (t.note ?? '')).toLowerCase().includes(q.toLowerCase())),
   )
-  const total = rows.reduce((s, t) => s + toRub(t.amount, t.currency), 0)
+  const total = rows.reduce((s, t) => s + toRub(scopedAmount.get(t.id) ?? t.amount, t.currency), 0)
   const upd = (id: string, patch: object) => store.update('finny_transactions', 'id', id, patch)
 
   const catOptions = data.categories.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>)
@@ -64,7 +68,7 @@ export default function Transactions({ store }: { store: Store }) {
 
       {adding && <AddForm store={store} onDone={() => setAdding(false)} />}
 
-      <MobileList store={store} rows={rows} total={total} />
+      <MobileList key={acc} store={store} rows={rows} total={total} />
 
       <div className="card table-wrap tx-table">
         <table>
@@ -166,6 +170,7 @@ type Tx = Store['data']['transactions'][number]
 /** Мобильный вид: список по дням, тап по строке раскрывает редактирование. */
 function MobileList({ store, rows, total }: { store: Store; rows: Tx[]; total: number }) {
   const { data, toRub } = store
+  const shares = useMemo(() => fundingShares(data.transactions, data.accounts), [data.transactions, data.accounts])
   const [open, setOpen] = useState<string | null>(null)
   const cat = Object.fromEntries(data.categories.map((c) => [c.id, c]))
   const upd = (id: string, patch: object) => store.update('finny_transactions', 'id', id, patch)
@@ -198,7 +203,7 @@ function MobileList({ store, rows, total }: { store: Store; rows: Tx[]; total: n
                     <span className="tx-ico" aria-hidden="true">{t.needs_review ? '❓' : c?.emoji ?? '📦'}</span>
                     <span className="tx-main">
                       <span className="tx-title">{c?.kind === 'expense' && isBig(toRub(t.amount, t.currency)) && <span className="big-tag">💎 крупная</span>}{t.title}</span>
-                      <span className="tx-meta">{c?.name ?? t.category_id} · {PEOPLE[t.who]}{accName(t.account_id) ? ` · ${accName(t.account_id)}` : ''}</span>
+                      <span className="tx-meta">{c?.name ?? t.category_id} · {PEOPLE[t.who]}{accName(t.account_id) ? ` · ${accName(t.account_id)}` : ''}{WALLETS.has(t.account_id ?? '') && t.amount < 0 && t.category_id !== 'transfer' ? ` · деньги ${shareLabel(shares.get(t.id))}` : ''}</span>
                     </span>
                     <span className={'tx-amount' + (t.amount > 0 ? ' pos' : '')}>
                       {t.amount > 0 ? '+' : ''}{fmt(t.amount, t.currency === 'RUB' ? '₽' : t.currency, 2)}

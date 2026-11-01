@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { fmt, matchAccount, monthLabel, today, type Store, useSessionState } from '../lib/store'
+import { fmt, monthLabel, today, type Store, useSessionState } from '../lib/store'
+import { fundingShares, scopeTransactions } from '../lib/funding'
 import { dubaiSummary, daysBetween } from '../lib/dubai'
 import { PEOPLE } from '../types'
 import { AccountFilter, BarList, Stat } from './ui'
@@ -21,7 +22,8 @@ export default function Overview({ store }: { store: Store }) {
   const [month, setMonth] = useSessionState('month', today().slice(0, 7))
   const catById = Object.fromEntries(data.categories.map((c) => [c.id, c]))
   const [acc, setAcc] = useSessionState('acc', '')
-  const tx = data.transactions.filter((t) => t.date.startsWith(month) && matchAccount(acc, t.account_id, data.accounts))
+  const shares = useMemo(() => fundingShares(data.transactions, data.accounts), [data.transactions, data.accounts])
+  const tx = scopeTransactions(data.transactions.filter((t) => t.date.startsWith(month)), data.accounts, acc, shares)
   const kind = (id: string) => catById[id]?.kind ?? 'expense'
 
   const expenses = tx.filter((t) => kind(t.category_id) === 'expense')

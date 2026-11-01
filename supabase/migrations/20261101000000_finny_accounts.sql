@@ -23,3 +23,6 @@ create policy "finny members delete" on public.finny_accounts for delete to auth
 
 alter table public.finny_transactions add column account_id text references public.finny_accounts(id) on update cascade on delete set null;
 create index finny_transactions_account_idx on public.finny_transactions (account_id);
+
+-- Озон Банк пополняется с общего счёта → считается общим кошельком
+-- (update finny_accounts set owner='joint' where id='ozon-mary' — выполнено в данных)
