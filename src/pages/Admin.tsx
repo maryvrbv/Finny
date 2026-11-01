@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { today, type Store } from '../lib/store'
-import { PEOPLE } from '../types'
+import { ACCOUNT_KINDS, PEOPLE } from '../types'
 import { CrudTable } from './CrudTable'
 import { useInstall } from '../lib/pwa'
 
 const sections = [
   { id: 'app', label: '📱 Приложение' },
+  { id: 'accounts', label: '💳 Счета' },
   { id: 'payments', label: '🏙️ Платежи за квартиру' },
   { id: 'categories', label: 'Категории' },
   { id: 'rates', label: 'Курсы валют' },
@@ -34,6 +35,41 @@ export default function Admin({ store }: { store: Store }) {
 
       <section className="card">
         {sec === 'app' && <AppSection />}
+
+        {sec === 'accounts' && (
+          <>
+            <h2>Счета, вклады, крипта, рассрочки</h2>
+            <p className="muted small">
+              Владелец «Общее» — общий счёт. Для рассрочек и кредитов остаток пиши со знаком минус.
+              ID — латиницей, например <code>sber-dima</code>.
+            </p>
+            <CrudTable
+              rows={data.accounts}
+              rowKey="id"
+              cols={[
+                { field: 'name', label: 'Название', required: true },
+                { field: 'owner', label: 'Чей', type: 'select', required: true, options: people },
+                { field: 'kind', label: 'Тип', type: 'select', required: true,
+                  options: Object.entries(ACCOUNT_KINDS).map(([value, label]) => ({ value, label })) },
+                { field: 'bank', label: 'Банк' },
+                { field: 'balance', label: 'Остаток', type: 'number' },
+                { field: 'balance_date', label: 'На дату', type: 'date' },
+                { field: 'rate', label: '%', type: 'number', width: '5em' },
+                { field: 'until_date', label: 'До', type: 'date' },
+                { field: 'note', label: 'Заметка' },
+                { field: 'active', label: 'Активен', type: 'checkbox' },
+                { field: 'id', label: 'ID', required: true, readonlyExisting: true },
+              ]}
+              defaults={{ name: '', owner: 'dima', kind: 'card', bank: '', balance: null, balance_date: today(), rate: null, until_date: null, note: '', active: true, id: '' }}
+              onCreate={(r) => store.insert('finny_accounts', { ...r, sort: data.accounts.length * 10 })}
+              onUpdate={(id, p) => store.update('finny_accounts', 'id', id, p)}
+              onDelete={(id) =>
+                data.transactions.some((t) => t.account_id === id)
+                  ? (alert('По счёту есть операции — сними галочку «Активен», чтобы скрыть его.'), false)
+                  : store.remove('finny_accounts', 'id', id)}
+            />
+          </>
+        )}
 
         {sec === 'payments' && (
           <>

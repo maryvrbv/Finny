@@ -1,3 +1,4 @@
+import type { Account } from '../types'
 import type { ReactNode } from 'react'
 
 export function Stat({ label, value, sub, className = '' }: { label: string; value: ReactNode; sub?: ReactNode; className?: string }) {
@@ -34,5 +35,26 @@ export function Progress({ value, label }: { value: number; label: string }) {
     <div className="progress" role="progressbar" aria-valuenow={Math.round(value)} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
       <div className="progress-fill" style={{ width: `${Math.min(100, value)}%` }} />
     </div>
+  )
+}
+
+
+/** Выбор счёта: все / группа по владельцу / конкретный счёт. */
+export function AccountFilter({ accounts, value, onChange }: { accounts: Account[]; value: string; onChange: (v: string) => void }) {
+  const groups: [string, string][] = [['joint', 'Общий'], ['mary', 'Маша'], ['dima', 'Дима']]
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label="Счёт">
+      <option value="">Все счета</option>
+      {groups.map(([o, label]) => {
+        const list = accounts.filter((a) => a.owner === o && a.kind !== 'credit')
+        if (!list.length) return null
+        return (
+          <optgroup key={o} label={label}>
+            <option value={`owner:${o}`}>{o === 'joint' ? '👫 Общие — все' : `👤 ${label} — все`}</option>
+            {list.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </optgroup>
+        )
+      })}
+    </select>
   )
 }

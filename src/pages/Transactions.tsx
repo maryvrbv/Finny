@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { fmt, monthLabel, today, type Store } from '../lib/store'
+import { fmt, matchAccount, monthLabel, today, type Store } from '../lib/store'
+import { AccountFilter } from './ui'
 import { PEOPLE, type PersonId } from '../types'
 import { useMonths } from './Overview'
 import { isBig } from '../lib/big'
@@ -13,6 +14,7 @@ export default function Transactions({ store }: { store: Store }) {
   const [q, setQ] = useState('')
   const [adding, setAdding] = useState(false)
   const [review, setReview] = useState(location.hash.includes('review'))
+  const [acc, setAcc] = useState(() => location.hash.match(/acc-(.+)$/)?.[1] ?? '')
 
   const rows = data.transactions.filter(
     (t) =>
@@ -20,6 +22,7 @@ export default function Transactions({ store }: { store: Store }) {
       (review || !month || t.date.startsWith(month)) &&
       (!cat || t.category_id === cat) &&
       (!who || t.who === who) &&
+      matchAccount(acc, t.account_id, data.accounts) &&
       (!q || (t.title + ' ' + (t.note ?? '')).toLowerCase().includes(q.toLowerCase())),
   )
   const total = rows.reduce((s, t) => s + toRub(t.amount, t.currency), 0)
@@ -39,6 +42,7 @@ export default function Transactions({ store }: { store: Store }) {
         <button onClick={() => setAdding((v) => !v)}>{adding ? 'Отмена' : '+ Добавить'}</button>
       </div>
       <div className="filters">
+        <AccountFilter accounts={data.accounts} value={acc} onChange={setAcc} />
         <select value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Категория">
           <option value="">Все категории</option>
           {catOptions}
@@ -77,7 +81,7 @@ export default function Transactions({ store }: { store: Store }) {
                   {data.categories.find((c) => c.id === t.category_id)?.kind === 'expense' && isBig(toRub(t.amount, t.currency)) && <span className="big-tag">💎 крупная</span>}
                   <input className="inline" defaultValue={t.title}
                     onBlur={(e) => e.target.value !== t.title && upd(t.id, { title: e.target.value })} />
-                  {(t.note || t.source) && <div className="muted small">{[t.note, t.source].filter(Boolean).join(' · ')}</div>}
+                  <div className="muted small">{[data.accounts.find((a) => a.id === t.account_id)?.name, t.note].filter(Boolean).join(' · ')}</div>
                 </td>
                 <td>
                   <select value={t.category_id} onChange={(e) => upd(t.id, { category_id: e.target.value })}>{catOptions}</select>
@@ -116,7 +120,7 @@ export default function Transactions({ store }: { store: Store }) {
 }
 
 function AddForm({ store, onDone }: { store: Store; onDone: () => void }) {
-  const [f, setF] = useState({ date: today(), title: '', amount: '', currency: 'RUB', category_id: 'other', who: 'joint', note: '', sign: -1 })
+  const [f, setF] = useState({ date: today(), title: '', amount: '', currency: 'RUB', category_id: 'other', who: 'joint', account_id: 'tbank-joint', note: '', sign: -1 })
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }))
   return (
     <form
@@ -124,7 +128,7 @@ function AddForm({ store, onDone }: { store: Store; onDone: () => void }) {
       onSubmit={async (e) => {
         e.preventDefault()
         const { sign, amount, note, ...rest } = f
-        const ok = await store.insert('finny_transactions', { ...rest, amount: sign * Math.abs(Number(amount)), note: note || null, source: 'вручную' })
+        const ok = await store.insert('finny_transactions', { ...rest, account_id: rest.account_id || null, amount: sign * Math.abs(Number(amount)), note: note || null, source: 'вручную' })
         if (ok) onDone()
       }}
     >
@@ -143,6 +147,10 @@ function AddForm({ store, onDone }: { store: Store; onDone: () => void }) {
       <select value={f.who} onChange={(e) => set({ who: e.target.value })}>
         {Object.entries(PEOPLE).map(([id, n]) => <option key={id} value={id}>{n}</option>)}
       </select>
+      <select value={f.account_id} onChange={(e) => set({ account_id: e.target.value })} aria-label="Счёт">
+        <option value="">Счёт не указан</option>
+        {store.data.accounts.filter((a) => a.kind !== 'credit').map((a) => <option key={a.id} value={a.id}>{PEOPLE[a.owner]}: {a.name}</option>)}
+      </select>
       <input placeholder="Заметка" value={f.note} onChange={(e) => set({ note: e.target.value })} />
       <button type="submit">Сохранить</button>
     </form>
@@ -157,6 +165,7 @@ function MobileList({ store, rows, total }: { store: Store; rows: Tx[]; total: n
   const [open, setOpen] = useState<string | null>(null)
   const cat = Object.fromEntries(data.categories.map((c) => [c.id, c]))
   const upd = (id: string, patch: object) => store.update('finny_transactions', 'id', id, patch)
+  const accName = (id: string | null) => data.accounts.find((a) => a.id === id)?.name
 
   const days: [string, Tx[]][] = []
   for (const t of rows) {
@@ -185,7 +194,7 @@ function MobileList({ store, rows, total }: { store: Store; rows: Tx[]; total: n
                     <span className="tx-ico" aria-hidden="true">{t.needs_review ? '❓' : c?.emoji ?? '📦'}</span>
                     <span className="tx-main">
                       <span className="tx-title">{c?.kind === 'expense' && isBig(toRub(t.amount, t.currency)) && <span className="big-tag">💎 крупная</span>}{t.title}</span>
-                      <span className="tx-meta">{c?.name ?? t.category_id} · {PEOPLE[t.who]}</span>
+                      <span className="tx-meta">{c?.name ?? t.category_id} · {PEOPLE[t.who]}{accName(t.account_id) ? ` · ${accName(t.account_id)}` : ''}</span>
                     </span>
                     <span className={'tx-amount' + (t.amount > 0 ? ' pos' : '')}>
                       {t.amount > 0 ? '+' : ''}{fmt(t.amount, t.currency === 'RUB' ? '₽' : t.currency, 2)}
@@ -218,6 +227,12 @@ function MobileList({ store, rows, total }: { store: Store; rows: Tx[]; total: n
                           <input type="date" defaultValue={t.date} onBlur={(e) => e.target.value && e.target.value !== t.date && upd(t.id, { date: e.target.value })} />
                         </label>
                       </div>
+                      <label>Счёт
+                        <select value={t.account_id ?? ''} onChange={(e) => upd(t.id, { account_id: e.target.value || null })}>
+                          <option value="">—</option>
+                          {data.accounts.filter((a) => a.kind !== 'credit').map((a) => <option key={a.id} value={a.id}>{PEOPLE[a.owner]}: {a.name}</option>)}
+                        </select>
+                      </label>
                       {(t.note || t.source) && <div className="tx-note">{[t.note, t.source].filter(Boolean).join(' · ')}</div>}
                       <div className="actions">
                         <button className={'ghost' + (t.needs_review ? ' on' : '')} onClick={() => upd(t.id, { needs_review: !t.needs_review })}>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
-import type { BudgetLine, Category, DubaiPayment, Installment, Member, Property, Rate, Transaction } from '../types'
+import type { Account, BudgetLine, Category, DubaiPayment, Installment, Member, Property, Rate, Transaction } from '../types'
 
 export interface Data {
   categories: Category[]
@@ -12,6 +12,7 @@ export interface Data {
   plan: Installment[]
   payments: DubaiPayment[]
   members: Member[]
+  accounts: Account[]
 }
 
 const num = <T,>(rows: T[], keys: (keyof T)[]): T[] =>
@@ -28,7 +29,7 @@ async function q<T>(p: PromiseLike<{ data: T[] | null; error: { message: string 
 }
 
 async function loadAll(): Promise<Data> {
-  const [categories, transactions, rateRows, budget, property, plan, payments, members] = await Promise.all([
+  const [categories, transactions, rateRows, budget, property, plan, payments, members, accounts] = await Promise.all([
     q<Category>(supabase.from('finny_categories').select('*').order('sort')),
     q<Transaction>(supabase.from('finny_transactions').select('*').order('date', { ascending: false }).order('created_at', { ascending: false })),
     q<Rate>(supabase.from('finny_rates').select('*').order('currency')),
@@ -37,6 +38,7 @@ async function loadAll(): Promise<Data> {
     q<Installment>(supabase.from('finny_dubai_plan').select('*').order('n')),
     q<DubaiPayment>(supabase.from('finny_dubai_payments').select('*').order('date')),
     q<Member>(supabase.from('finny_members').select('email,person,is_admin').order('email')),
+    q<Account>(supabase.from('finny_accounts').select('*').order('sort')),
   ])
   const rates = num(rateRows, ['rub'])
   const prop = num(property, ['price_aed', 'monthly_savings_rub', 'planning_rate_rub'])[0] ?? null
@@ -50,12 +52,13 @@ async function loadAll(): Promise<Data> {
     plan: num(plan, ['percent', 'amount_aed']),
     payments: num(payments, ['aed', 'rub_mary', 'rub_dima']),
     members,
+    accounts: num(accounts, ['balance', 'rate']),
   }
 }
 
 type Table =
   | 'finny_categories' | 'finny_transactions' | 'finny_rates' | 'finny_budget'
-  | 'finny_property' | 'finny_dubai_plan' | 'finny_dubai_payments' | 'finny_members'
+  | 'finny_property' | 'finny_dubai_plan' | 'finny_dubai_payments' | 'finny_members' | 'finny_accounts'
 
 const tableField: Record<Table, keyof Data> = {
   finny_categories: 'categories',
@@ -66,6 +69,7 @@ const tableField: Record<Table, keyof Data> = {
   finny_dubai_plan: 'plan',
   finny_dubai_payments: 'payments',
   finny_members: 'members',
+  finny_accounts: 'accounts',
 }
 
 export function useStore() {
@@ -150,3 +154,13 @@ export const monthLabel = (ym: string) => {
 }
 
 export const today = () => new Date().toISOString().slice(0, 10)
+
+/** Фильтр по счёту: '' — все, 'owner:mary|dima|joint' — группа, иначе id счёта. */
+export function matchAccount(filter: string, accountId: string | null, accounts: Account[]) {
+  if (!filter) return true
+  if (filter.startsWith('owner:')) {
+    const owner = filter.slice(6)
+    return accounts.find((a) => a.id === accountId)?.owner === owner
+  }
+  return accountId === filter
+}

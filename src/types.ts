@@ -21,6 +21,7 @@ export interface Transaction {
   category_id: string
   who: PersonId
   account: string | null
+  account_id: string | null
   note: string | null
   /** Откуда взяли: «видео 1, Т-Банк» и т.п. */
   source: string | null
@@ -82,4 +83,26 @@ export interface Member {
   email: string
   person: PersonId
   is_admin: boolean
+}
+
+export type AccountKind = 'card' | 'savings' | 'deposit' | 'cash' | 'crypto' | 'credit'
+export const ACCOUNT_KINDS: Record<AccountKind, string> = {
+  card: '💳 Карта / счёт', savings: '🐷 Сейв / накопительный', deposit: '🏦 Вклад',
+  cash: '💵 Наличные', crypto: '🪙 Крипта', credit: '🧾 Кредит / рассрочка',
+}
+
+export interface Account {
+  id: string
+  name: string
+  owner: PersonId
+  kind: AccountKind
+  bank: string | null
+  currency: string
+  balance: number | null
+  balance_date: string | null
+  rate: number | null
+  until_date: string | null
+  note: string | null
+  active: boolean
+  sort: number
 }

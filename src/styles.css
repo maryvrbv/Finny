@@ -196,7 +196,7 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
   .account .email { display: none; }
 
   .tabbar {
-    display: grid; grid-template-columns: repeat(5, 1fr);
+    display: grid; grid-template-columns: repeat(6, 1fr);
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
     height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
     background: rgba(255, 255, 255, 0.92); backdrop-filter: saturate(180%) blur(16px); -webkit-backdrop-filter: saturate(180%) blur(16px);
@@ -204,7 +204,7 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
   }
   .tabbar a {
     display: grid; place-items: center; align-content: center; gap: 2px; text-decoration: none;
-    color: var(--muted); font-size: 11px; font-weight: 600;
+    color: var(--muted); font-size: 10.5px; font-weight: 600; letter-spacing: -0.01em;
   }
   .tabbar a .ti { font-size: 22px; line-height: 1; filter: grayscale(1); opacity: 0.7; }
   .tabbar a.active { color: var(--accent); }
@@ -270,3 +270,11 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
 .gap-value { font-size: 24px; font-weight: 750; margin: 2px 0 6px; font-variant-numeric: tabular-nums; }
 .gap-box .op-list { margin-top: 8px; }
 .gap-box .op-list li { border-bottom-color: rgba(42, 120, 214, 0.15); }
+
+/* ---------- счета ---------- */
+.acc-row { align-items: start !important; }
+.acc-btn { background: none; border: none; color: inherit; padding: 0; min-height: auto; text-align: left; font-weight: 400; width: 100%; }
+.acc-edit { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 6px 0 4px; }
+optgroup { font-weight: 650; }
+.acc-btn { min-width: 0; overflow: hidden; }
+.acc-row { grid-template-columns: minmax(0, 1fr) auto !important; }

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { fmt, monthLabel, today, type Store } from '../lib/store'
+import { fmt, matchAccount, monthLabel, today, type Store } from '../lib/store'
 import { dubaiSummary, daysBetween } from '../lib/dubai'
 import { PEOPLE } from '../types'
-import { BarList, Stat } from './ui'
+import { AccountFilter, BarList, Stat } from './ui'
 import { BIG_PURCHASE_RUB, isBig } from '../lib/big'
 import type { Transaction } from '../types'
 
@@ -20,7 +20,8 @@ export default function Overview({ store }: { store: Store }) {
   const months = useMonths(store)
   const [month, setMonth] = useState(today().slice(0, 7))
   const catById = Object.fromEntries(data.categories.map((c) => [c.id, c]))
-  const tx = data.transactions.filter((t) => t.date.startsWith(month))
+  const [acc, setAcc] = useState('')
+  const tx = data.transactions.filter((t) => t.date.startsWith(month) && matchAccount(acc, t.account_id, data.accounts))
   const kind = (id: string) => catById[id]?.kind ?? 'expense'
 
   const expenses = tx.filter((t) => kind(t.category_id) === 'expense')
@@ -53,6 +54,8 @@ export default function Overview({ store }: { store: Store }) {
         <select className="month-select" value={month} onChange={(e) => setMonth(e.target.value)} aria-label="Месяц">
           {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
         </select>
+        <span style={{ flex: 1 }} />
+        <AccountFilter accounts={data.accounts} value={acc} onChange={setAcc} />
       </div>
 
       <section className="stats">

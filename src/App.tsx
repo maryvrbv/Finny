@@ -8,10 +8,12 @@ import Transactions from './pages/Transactions'
 import Dubai from './pages/Dubai'
 import Plan from './pages/Plan'
 import Admin from './pages/Admin'
+import Accounts from './pages/Accounts'
 
 const tabs = [
   { id: 'overview', label: 'Обзор', icon: '📊' },
   { id: 'transactions', label: 'Траты', icon: '🧾' },
+  { id: 'accounts', label: 'Счета', icon: '💳' },
   { id: 'dubai', label: 'Квартира', icon: '🏙️' },
   { id: 'plan', label: 'План', icon: '🎯' },
   { id: 'admin', label: 'Настройки', icon: '⚙️' },
@@ -83,6 +85,7 @@ function Main({ email }: { email: string }) {
           <>
             {tab === 'overview' && <Overview store={store as Store} />}
             {tab === 'transactions' && <Transactions store={store as Store} />}
+            {tab === 'accounts' && <Accounts store={store as Store} />}
             {tab === 'dubai' && <Dubai store={store as Store} />}
             {tab === 'plan' && <Plan store={store as Store} />}
             {tab === 'admin' && <Admin store={store as Store} />}
