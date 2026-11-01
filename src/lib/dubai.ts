@@ -45,8 +45,13 @@ export function dubaiSummary(property: Property, plan: Installment[], payments: 
     next: nextIdx >= 0 ? rows[nextIdx] : undefined,
     lastPaid: nextIdx > 0 ? rows[nextIdx - 1] : nextIdx < 0 ? rows[rows.length - 1] : undefined,
     contributionsRUB: { mary, dima, total: mary + dima },
-    /** Сколько один должен другому, если доли 50/50 (плюс — Дима Маше). */
-    equalizeRUB: (mary - dima) / 2,
+    /**
+     * Договорённость: вкладываем поровну. Разница вкладов — сколько отстающий
+     * должен довложить в следующие платежи (плюс — довкладывает Дима).
+     */
+    gapRUB: mary - dima,
+    /** Какие ближайшие платежи отстающий оплачивает сам, пока вклады не сравняются (по плановому курсу). */
+    catchUp: catchUpPlan(rows, Math.abs(mary - dima), property.planning_rate_rub),
     upcoming: rows.filter((r) => r.status !== 'paid' && r.due_date <= horizon),
     rateRUB,
   }
@@ -66,4 +71,19 @@ function addMonths(iso: string, n: number) {
   const d = new Date(iso + 'T00:00:00')
   d.setMonth(d.getMonth() + n)
   return d.toISOString().slice(0, 10)
+}
+
+/** Раскладывает разницу вкладов на ближайшие неоплаченные платежи графика. */
+function catchUpPlan(rows: InstallmentRow[], gapRUB: number, rate: number) {
+  let leftAED = gapRUB / rate
+  const out: { n: number; due_date: string; aed: number; full: boolean }[] = []
+  for (const r of rows) {
+    if (leftAED <= 0.5) break
+    const due = r.amount_aed - r.paidAED
+    if (due <= 0) continue
+    const take = Math.min(due, leftAED)
+    out.push({ n: r.n, due_date: r.due_date, aed: take, full: take >= due - 0.5 })
+    leftAED -= take
+  }
+  return { gapAED: gapRUB / rate, payments: out }
 }

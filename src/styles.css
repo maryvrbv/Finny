@@ -265,3 +265,8 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
 .cat-label { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .cat-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .big-dot { flex: none; font-size: 12px; }
+.gap-box { margin-top: 12px; padding: 14px; border-radius: 12px; background: var(--accent-soft); }
+.gap-title { font-size: 13.5px; font-weight: 600; color: var(--ink-2); }
+.gap-value { font-size: 24px; font-weight: 750; margin: 2px 0 6px; font-variant-numeric: tabular-nums; }
+.gap-box .op-list { margin-top: 8px; }
+.gap-box .op-list li { border-bottom-color: rgba(42, 120, 214, 0.15); }

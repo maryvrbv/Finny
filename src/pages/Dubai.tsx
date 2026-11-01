@@ -66,9 +66,30 @@ export default function Dubai({ store }: { store: Store }) {
           />
           <p className="small">
             Всего {rub(s.contributionsRUB.total)} за {aed(s.paidAED)} (средний курс {(s.contributionsRUB.total / s.paidAED).toFixed(2)} ₽/AED).
-            {' '}Разница вкладов {rub(Math.abs(s.contributionsRUB.mary - s.contributionsRUB.dima))};
-            при долях 50/50 {s.equalizeRUB > 0 ? 'Дима должен Маше' : 'Маша должна Диме'} <b>{rub(Math.abs(s.equalizeRUB))}</b>.
           </p>
+          {Math.abs(s.gapRUB) > 1 && (
+            <div className="gap-box">
+              <div className="gap-title">
+                Договорились вкладывать поровну — {s.gapRUB > 0 ? 'Диме' : 'Маше'} нужно довложить
+              </div>
+              <div className="gap-value">{rub(Math.abs(s.gapRUB))}</div>
+              <div className="muted small">
+                ≈ {aed(s.catchUp.gapAED)} по плановому курсу {p.planning_rate_rub} ₽/AED.
+                Пока разница не закрыта, {s.gapRUB > 0 ? 'Дима' : 'Маша'} оплачивает платежи сам:
+              </div>
+              <ul className="op-list">
+                {s.catchUp.payments.map((x) => (
+                  <li key={x.n} style={{ gridTemplateColumns: '1fr auto' }}>
+                    <span className="op-main">
+                      <span className="op-title">{date(x.due_date)}</span>
+                      <span className="op-meta">{x.full ? 'платёж целиком' : 'часть платежа, остальное — поровну'}</span>
+                    </span>
+                    <span className="op-amount num">{aed(x.aed)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
 
         <section className="card table-wrap">
