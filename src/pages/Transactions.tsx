@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { fmt, matchAccount, monthLabel, today, type Store } from '../lib/store'
+import { useEffect, useState } from 'react'
+import { fmt, matchAccount, monthLabel, today, type Store, useSessionState } from '../lib/store'
 import { AccountFilter } from './ui'
 import { PEOPLE, type PersonId } from '../types'
 import { useMonths } from './Overview'
@@ -8,13 +8,17 @@ import { isBig } from '../lib/big'
 export default function Transactions({ store }: { store: Store }) {
   const { data, toRub } = store
   const months = useMonths(store)
-  const [month, setMonth] = useState(today().slice(0, 7))
+  const [month, setMonth] = useSessionState('month', today().slice(0, 7))
   const [cat, setCat] = useState('')
   const [who, setWho] = useState('')
   const [q, setQ] = useState('')
   const [adding, setAdding] = useState(false)
   const [review, setReview] = useState(location.hash.includes('review'))
-  const [acc, setAcc] = useState(() => location.hash.match(/acc-(.+)$/)?.[1] ?? '')
+  const [acc, setAcc] = useSessionState('acc', '')
+  useEffect(() => {
+    const m = location.hash.match(/acc-(.+)$/)
+    if (m) setAcc(m[1])
+  }, [setAcc])
 
   const rows = data.transactions.filter(
     (t) =>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { fmt, matchAccount, monthLabel, today, type Store } from '../lib/store'
+import { fmt, matchAccount, monthLabel, today, type Store, useSessionState } from '../lib/store'
 import { dubaiSummary, daysBetween } from '../lib/dubai'
 import { PEOPLE } from '../types'
 import { AccountFilter, BarList, Stat } from './ui'
@@ -18,9 +18,9 @@ export function useMonths(store: Store) {
 export default function Overview({ store }: { store: Store }) {
   const { data, toRub } = store
   const months = useMonths(store)
-  const [month, setMonth] = useState(today().slice(0, 7))
+  const [month, setMonth] = useSessionState('month', today().slice(0, 7))
   const catById = Object.fromEntries(data.categories.map((c) => [c.id, c]))
-  const [acc, setAcc] = useState('')
+  const [acc, setAcc] = useSessionState('acc', '')
   const tx = data.transactions.filter((t) => t.date.startsWith(month) && matchAccount(acc, t.account_id, data.accounts))
   const kind = (id: string) => catById[id]?.kind ?? 'expense'
 

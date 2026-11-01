@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { fmt, monthLabel, today, type Store } from '../lib/store'
+import { fmt, monthLabel, today, type Store, useSessionState } from '../lib/store'
 import { PEOPLE } from '../types'
 import { useMonths } from './Overview'
 import { Stat } from './ui'
@@ -7,7 +7,7 @@ import { Stat } from './ui'
 export default function Plan({ store }: { store: Store }) {
   const { data, toRub } = store
   const months = useMonths(store)
-  const [month, setMonth] = useState(today().slice(0, 7))
+  const [month, setMonth] = useSessionState('month', today().slice(0, 7))
   const catById = Object.fromEntries(data.categories.map((c) => [c.id, c]))
   const sum = (k: string) => data.budget.filter((b) => b.kind === k).reduce((s, l) => s + l.monthly_rub, 0)
   const income = sum('income'), savings = sum('savings'), planned = sum('expense')

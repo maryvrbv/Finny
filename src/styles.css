@@ -278,3 +278,11 @@ label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14
 optgroup { font-weight: 650; }
 .acc-btn { min-width: 0; overflow: hidden; }
 .acc-row { grid-template-columns: minmax(0, 1fr) auto !important; }
+
+/* Списки не шире контейнера (длинные названия счетов растягивали страницу) */
+select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+.toolbar > select:not(.month-select) { flex: 0 1 260px; }
+@media (max-width: 720px) {
+  .toolbar > select:not(.month-select) { flex: 1 1 100%; width: 100%; }
+  .app { overflow-x: clip; }
+}

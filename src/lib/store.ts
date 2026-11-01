@@ -164,3 +164,17 @@ export function matchAccount(filter: string, accountId: string | null, accounts:
   }
   return accountId === filter
 }
+
+/** useState, который переживает переключение вкладок (живёт до закрытия приложения). */
+export function useSessionState<T>(key: string, init: T) {
+  const [v, setV] = useState<T>(() => {
+    try {
+      const s = sessionStorage.getItem('finny:' + key)
+      return s == null ? init : (JSON.parse(s) as T)
+    } catch {
+      return init
+    }
+  })
+  useEffect(() => sessionStorage.setItem('finny:' + key, JSON.stringify(v)), [key, v])
+  return [v, setV] as const
+}
