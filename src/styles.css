@@ -291,3 +291,15 @@ select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 h3.sub { font-size: 13.5px; color: var(--muted); font-weight: 650; margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.03em; }
 table.years td, table.years th { padding: 8px 6px; }
 tr.year-total td { background: var(--track); font-weight: 650; border-bottom: 2px solid var(--axis); }
+
+/* ---------- группы повторяющихся трат внутри категории ---------- */
+.op-list li.group-row { display: block; padding: 0; }
+.group-btn {
+  width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  background: none; border: none; color: inherit; text-align: left; font-weight: 400; padding: 9px 2px; min-height: 44px; border-radius: 8px;
+}
+.group-btn:hover { background: var(--track); }
+.group-count { display: inline-block; font-size: 12px; font-weight: 650; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 0 7px; margin-left: 4px; }
+.op-list li.group-item { padding-left: 14px; background: var(--page); }
+.op-list li.group-item .op-title { font-weight: 450; font-size: 14px; }
+.op-list li.group-item .op-amount { font-weight: 550; font-size: 14px; color: var(--ink-2); }

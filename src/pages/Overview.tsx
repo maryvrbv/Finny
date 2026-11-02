@@ -147,18 +147,13 @@ function CategoryBreakdown({ rows, txByCat, toRub }: {
             </button>
             {isOpen && (
               <ul className="op-list nested">
-                {list.map((t) => {
-                  const rub = toRub(t.amount, t.currency)
-                  return (
-                    <li key={t.id} className={isBig(rub) ? 'big' : ''}>
-                      <span className="op-main">
-                        <span className="op-title">{isBig(rub) && '💎 '}{t.title}</span>
-                        <span className="op-meta">{dayShort(t.date)}{t.currency !== 'RUB' ? ` · ${fmt(t.amount, t.currency, 2)}` : ''}</span>
-                      </span>
-                      <span className={'op-amount num' + (rub > 0 ? ' pos' : '')}>{rub > 0 ? '+' : ''}{fmt(rub)}</span>
-                    </li>
-                  )
-                })}
+                {groupByMerchant(list, toRub).map((g) =>
+                  g.items.length === 1 ? (
+                    <OpItem key={g.items[0].id} t={g.items[0]} toRub={toRub} />
+                  ) : (
+                    <MerchantGroup key={g.key} g={g} toRub={toRub} />
+                  ),
+                )}
                 <li className="op-foot"><span className="muted small">{list.length} операций</span></li>
               </ul>
             )}
@@ -166,5 +161,69 @@ function CategoryBreakdown({ rows, txByCat, toRub }: {
         )
       })}
     </div>
+  )
+}
+
+/** Ключ продавца: «Озон: штукатурка» → «Озон», «Лавка» → «Лавка», «PETKIT: умный лоток» → «PETKIT». */
+function merchantKey(title: string) {
+  let k = title.split(':')[0]
+  k = k.replace(/\s*\(.*?\)\s*/g, ' ').replace(/\s+—.*$/, '').trim()
+  return k || title
+}
+
+interface Group { key: string; items: Transaction[]; total: number }
+
+function groupByMerchant(list: Transaction[], toRub: (a: number, c: string) => number): Group[] {
+  const map = new Map<string, Group>()
+  for (const t of list) {
+    const key = merchantKey(t.title)
+    const g = map.get(key) ?? { key, items: [], total: 0 }
+    g.items.push(t)
+    g.total += toRub(t.amount, t.currency)
+    map.set(key, g)
+  }
+  return [...map.values()].sort((a, b) => a.total - b.total) // траты отрицательные: крупные сверху
+}
+
+function OpItem({ t, toRub }: { t: Transaction; toRub: (a: number, c: string) => number }) {
+  const rub = toRub(t.amount, t.currency)
+  return (
+    <li className={isBig(rub) ? 'big' : ''}>
+      <span className="op-main">
+        <span className="op-title">{isBig(rub) && '💎 '}{t.title}</span>
+        <span className="op-meta">{dayShort(t.date)}{t.currency !== 'RUB' ? ` · ${fmt(t.amount, t.currency, 2)}` : ''}</span>
+      </span>
+      <span className={'op-amount num' + (rub > 0 ? ' pos' : '')}>{rub > 0 ? '+' : ''}{fmt(rub)}</span>
+    </li>
+  )
+}
+
+function MerchantGroup({ g, toRub }: { g: Group; toRub: (a: number, c: string) => number }) {
+  const [open, setOpen] = useState(false)
+  const dates = g.items.map((t) => t.date).sort()
+  const span = dates[0] === dates[dates.length - 1] ? dayShort(dates[0]) : `${dayShort(dates[0])} – ${dayShort(dates[dates.length - 1])}`
+  return (
+    <>
+      <li className="group-row">
+        <button className="group-btn" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+          <span className="op-main">
+            <span className="op-title">{g.key} <span className="group-count">× {g.items.length}</span></span>
+            <span className="op-meta">{span} · {open ? 'свернуть' : 'показать все'}</span>
+          </span>
+          <span className={'op-amount num' + (g.total > 0 ? ' pos' : '')}>
+            {fmt(g.total)} <span className="chev" aria-hidden="true">{open ? '▴' : '▾'}</span>
+          </span>
+        </button>
+      </li>
+      {open && g.items.map((t) => (
+        <li key={t.id} className="group-item">
+          <span className="op-main">
+            <span className="op-title">{t.title.startsWith(g.key + ':') ? t.title.slice(g.key.length + 1).trim() : t.title}</span>
+            <span className="op-meta">{dayShort(t.date)}</span>
+          </span>
+          <span className="op-amount num">{fmt(toRub(t.amount, t.currency))}</span>
+        </li>
+      ))}
+    </>
   )
 }
